@@ -1,0 +1,38 @@
+import { expect, test, vi } from 'vitest';
+
+import { InMemoryStorage } from './InMemoryStorage';
+import { Migration } from './Migration';
+import { MigrationsRunner } from './MigrationsRunner';
+
+test('basic migration test', async () => {
+	let x = 0;
+	const migrations = [
+		{
+			uid: '1',
+			apply: vi.fn(async () => {
+				x = 1;
+			}),
+		},
+		{
+			uid: '2',
+			apply: vi.fn(async () => {
+				x = 2;
+			}),
+		},
+		{
+			uid: '3',
+			apply: vi.fn(async () => {
+				x = 3;
+			}),
+		},
+	] satisfies Migration[];
+
+	const storage = new InMemoryStorage();
+	const runner = new MigrationsRunner(storage, migrations);
+
+	await runner.migrateAll();
+
+	migrations.every(({ apply }) => expect(apply.mock.calls).toEqual([[undefined]]));
+
+	expect(x).toBe(3);
+});
