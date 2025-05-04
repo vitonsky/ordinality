@@ -1,6 +1,12 @@
 import { MigrationsState, MigrationStorage } from './MigrationStorage';
 
 export class InMemoryStorage implements MigrationStorage {
+	constructor(initState?: MigrationsState) {
+		if (initState) {
+			this.state = initState;
+		}
+	}
+
 	private async writeState(state: MigrationsState) {
 		this.state = state;
 	}
