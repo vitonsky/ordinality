@@ -65,7 +65,7 @@ describe.sequential('basic migration use case', () => {
 			migrations,
 		);
 
-		expect(runner.migrateAll(context)).rejects.toThrowError(
+		await expect(runner.migrateAll(context)).rejects.toThrowError(
 			'Applied migrations list is larger than provided migrations list',
 		);
 	});
@@ -80,7 +80,7 @@ describe.sequential('basic migration use case', () => {
 			migrations,
 		);
 
-		expect(runner.migrateAll(context)).rejects.toThrowError(
+		await expect(runner.migrateAll(context)).rejects.toThrowError(
 			'Migration uid does not match for transaction #1',
 		);
 	});
@@ -96,7 +96,7 @@ describe.sequential('basic migration use case', () => {
 			},
 		]);
 
-		expect(runner.migrateAll(context)).rejects.toThrowError(
+		await expect(runner.migrateAll(context)).rejects.toThrowError(
 			'Migrations list contains entries with the same identifiers',
 		);
 	});
@@ -129,6 +129,39 @@ describe.sequential('basic migration use case', () => {
 		previousMigrationsSlice.every(({ apply }) => expect(apply).not.toBeCalled());
 
 		// Data changed correctly
+		expect(targetState).toBe(5);
+	});
+
+	test('exception while running will stop a migration process', async () => {
+		const newMigrations = [
+			{
+				uid: '6',
+				apply: vi.fn(async () => {
+					throw new Error('Test error');
+				}),
+			},
+			{
+				uid: '7',
+				apply: vi.fn(async () => {
+					targetState = 7;
+				}),
+			},
+		] satisfies Migration[];
+
+		const runner = new MigrationsRunner<{ secret: number }>(storage, [
+			...migrations,
+			...newMigrations,
+		]);
+
+		await expect(runner.migrateAll(context)).rejects.toThrowError();
+
+		expect(newMigrations[0].apply.mock.calls).toEqual([[context]]);
+		expect(newMigrations[1].apply).not.toBeCalled();
+
+		// Previous migrations has not been called
+		migrations.every(({ apply }) => expect(apply).not.toBeCalled());
+
+		// Data has not been changed
 		expect(targetState).toBe(5);
 	});
 });
