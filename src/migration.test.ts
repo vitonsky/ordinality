@@ -28,11 +28,12 @@ test('basic migration test', async () => {
 	] satisfies Migration[];
 
 	const storage = new InMemoryStorage();
-	const runner = new MigrationsRunner(storage, migrations);
+	const runner = new MigrationsRunner<{ secret: number }>(storage, migrations);
 
-	await runner.migrateAll();
+	const context = { secret: Math.random() };
+	await runner.migrateAll(context);
 
-	migrations.every(({ apply }) => expect(apply.mock.calls).toEqual([[undefined]]));
+	migrations.every(({ apply }) => expect(apply.mock.calls).toEqual([[context]]));
 
 	expect(x).toBe(3);
 });
