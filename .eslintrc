@@ -40,7 +40,8 @@
 				"ignoreRequire": true,
 				"lang": "en_US",
 				"skipWords": [
-					"ordinality"
+					"ordinality",
+					"uid",
 				],
 				// Check if word contains numbers
 				"skipIfMatch": [
