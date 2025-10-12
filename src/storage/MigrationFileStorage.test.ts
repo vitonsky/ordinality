@@ -82,3 +82,28 @@ test('Storage may be extended to control meta', async () => {
 
 	await expect(storage.log('baz', { hash: 'hash-3' })).resolves.not.toThrow();
 });
+
+test('Custom codecs may transparently encode/decode data', async () => {
+	const storage = new MigrationFileStorage('/foo/bar/custom-codec.json', undefined, {
+		codec: {
+			encode(data) {
+				return Buffer.from('FILE PREFIX' + JSON.stringify(data, undefined, 2));
+			},
+			decode(buffer) {
+				return JSON.parse(buffer.toString('utf-8').slice('FILE PREFIX'.length));
+			},
+		},
+	});
+
+	await expect(storage.list()).resolves.toEqual([]);
+	expect(getFilesList()).not.toContainEqual('/foo/bar/custom-codec.json');
+
+	await storage.log('foo');
+	expect(getFilesList()).toContainEqual('/foo/bar/custom-codec.json');
+	expect(vol.readFileSync('/foo/bar/custom-codec.json', { encoding: 'utf8' })).toMatch(
+		/^FILE PREFIX\{/,
+	);
+
+	await storage.log('bar');
+	await expect(storage.list()).resolves.toEqual(['foo', 'bar']);
+});
