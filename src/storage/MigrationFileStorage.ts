@@ -1,44 +1,67 @@
 import { existsSync } from 'fs';
+import path from 'path';
 import { z } from 'zod';
 
-import { readFile, writeFile } from 'fs/promises';
-import { MigrationsState, MigrationStorage } from './MigrationStorage';
+import { mkdir, readFile, writeFile } from 'fs/promises';
+import { MigrationStorage } from './MigrationStorage';
 
 export const MigrationStateScheme = z.object({ migrations: z.string().array() }).strict();
 
 // TODO: lock file and wait unlock to ensure consistent state when multiple instances in run
-export class MigrationFileStorage implements MigrationStorage {
-	constructor(private readonly filename: string) {}
+export class MigrationFileStorage<M = void> implements MigrationStorage<M> {
+	constructor(
+		private readonly filename: string,
+		private readonly metaScheme?: M extends z.TypeOf<infer X> ? X : never,
+	) {}
 
-	private async fetchState(): Promise<MigrationsState> {
+	protected getMigrationScheme() {
+		return z.object({
+			name: z.string(),
+			meta: this.metaScheme ?? z.void().optional(),
+		});
+	}
+
+	protected getStorageScheme() {
+		return z.object({
+			migrations: this.getMigrationScheme().array(),
+		});
+	}
+
+	protected async fetchState() {
 		if (!existsSync(this.filename)) return { migrations: [] };
 
 		const fileBuffer = await readFile(this.filename);
 		const jsonState = JSON.parse(fileBuffer.toString('utf-8'));
 
-		return MigrationStateScheme.parse(jsonState);
+		return this.getStorageScheme().parse(jsonState) as {
+			migrations: {
+				name: string;
+				meta: M;
+			}[];
+		};
 	}
 
-	private async writeState(state: MigrationsState) {
-		const verifiedState = MigrationStateScheme.parse(state);
+	async list(): Promise<string[]> {
+		const state = await this.fetchState();
 
-		await writeFile(this.filename, JSON.stringify(verifiedState, undefined, 2));
-		this.state = state;
+		return state.migrations.map((migration) => migration.name);
 	}
 
-	private state: MigrationsState | null = null;
-	async getState(): Promise<MigrationsState> {
-		if (!this.state) {
-			this.state = await this.fetchState();
+	async log(uid: string, meta: M): Promise<void> {
+		const newState = await this.fetchState();
+
+		// Ensure unique name
+		for (const migration of newState.migrations) {
+			if (migration.name === uid)
+				throw new Error(`Migration with name ${uid} is already applied`);
 		}
 
-		return structuredClone(this.state);
-	}
+		// Add and validate
+		newState.migrations.push({ name: uid, meta });
 
-	async log(uid: string): Promise<void> {
-		const state = await this.getState();
-		state.migrations.push(uid);
+		await mkdir(path.dirname(this.filename), { recursive: true });
 
-		await this.writeState(state);
+		const verifiedState = this.getStorageScheme().parse(newState);
+		await writeFile(this.filename, JSON.stringify(verifiedState, undefined, 2));
 	}
 }
