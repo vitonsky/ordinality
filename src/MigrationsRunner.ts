@@ -6,17 +6,21 @@ export class MigrationsRunner<
 	Meta extends Record<any, any> | void = void,
 > {
 	constructor(
-		private readonly storage: MigrationStorage<Meta>,
-		private readonly migrations: Migration<Context, Meta>[],
+		private readonly config: {
+			migrations: Migration<Context, Meta>[];
+			storage: MigrationStorage<Meta>;
+			context: Context;
+		},
 	) {}
 
 	/**
 	 * Executes migrations and returns list with ids of applied migrations
 	 */
-	public async migrateAll(context: Context) {
-		const appliedMigrationsId = await this.storage.list();
+	public async migrate() {
+		const { migrations, storage, context } = this.config;
+		const appliedMigrationsId = await storage.list();
 
-		if (appliedMigrationsId.length > this.migrations.length)
+		if (appliedMigrationsId.length > migrations.length)
 			throw new Error(
 				'Applied migrations list is larger than provided migrations list',
 			);
@@ -26,14 +30,14 @@ export class MigrationsRunner<
 				'Current migrations list contains entries with the same identifiers',
 			);
 
-		const migrationsListIds = this.migrations.map((migration) => migration.uid);
+		const migrationsListIds = migrations.map((migration) => migration.uid);
 		if (migrationsListIds.length !== new Set(migrationsListIds).size)
 			throw new Error('Migrations list contains entries with the same identifiers');
 
 		// Ensure current state is valid
 		const appliedMigrations: string[] = [];
-		for (let i = 0; i < this.migrations.length; i++) {
-			const migration = this.migrations[i];
+		for (let i = 0; i < migrations.length; i++) {
+			const migration = migrations[i];
 
 			// Ensure migrations is match
 			if (i < appliedMigrationsId.length) {
@@ -52,7 +56,7 @@ export class MigrationsRunner<
 
 			// Apply migration
 			await migration.apply(context);
-			await this.storage.log(migration.uid, meta);
+			await storage.log(migration.uid, meta);
 			appliedMigrations.push(migration.uid);
 		}
 

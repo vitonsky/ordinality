@@ -28,14 +28,18 @@ describe.sequential('basic migration use case', () => {
 	const context = { secret: Math.random() };
 
 	const storage = new InMemoryStorage();
-	const runner = new MigrationsRunner<{ secret: number }>(storage, migrations);
+	const runner = new MigrationsRunner({
+		storage,
+		migrations,
+		context,
+	});
 
 	beforeEach(() => {
 		vi.clearAllMocks();
 	});
 
 	test('all migrations executes in first run', async () => {
-		await expect(runner.migrateAll(context)).resolves.toEqual(['1', '2', '3']);
+		await expect(runner.migrate()).resolves.toEqual(['1', '2', '3']);
 
 		// Every migration has been called with context
 		migrations.every(({ apply }) => expect(apply.mock.calls).toEqual([[context]]));
@@ -45,7 +49,7 @@ describe.sequential('basic migration use case', () => {
 	});
 
 	test('no migrations executes later', async () => {
-		await expect(runner.migrateAll(context)).resolves.toEqual([]);
+		await expect(runner.migrate()).resolves.toEqual([]);
 
 		// Every migration has been called with context
 		migrations.every(({ apply }) => expect(apply).not.toHaveBeenCalled());
@@ -60,12 +64,13 @@ describe.sequential('basic migration use case', () => {
 		const anotherStorage = new InMemoryStorage(
 			new Set([...state, 'non exists migration']),
 		);
-		const runner = new MigrationsRunner<{ secret: number }>(
-			anotherStorage,
+		const runner = new MigrationsRunner<{ secret: number }>({
+			storage: anotherStorage,
 			migrations,
-		);
+			context,
+		});
 
-		await expect(runner.migrateAll(context)).rejects.toThrowError(
+		await expect(runner.migrate()).rejects.toThrowError(
 			'Applied migrations list is larger than provided migrations list',
 		);
 	});
@@ -73,28 +78,33 @@ describe.sequential('basic migration use case', () => {
 	test('error thrown if state migrations names sequences does not match', async () => {
 		const state = await storage.list();
 		const anotherStorage = new InMemoryStorage(new Set(state.reverse()));
-		const runner = new MigrationsRunner<{ secret: number }>(
-			anotherStorage,
+		const runner = new MigrationsRunner<{ secret: number }>({
+			storage: anotherStorage,
 			migrations,
-		);
+			context,
+		});
 
-		await expect(runner.migrateAll(context)).rejects.toThrowError(
+		await expect(runner.migrate()).rejects.toThrowError(
 			'Migration uid does not match for transaction #1',
 		);
 	});
 
 	test('error thrown when provided migrations with the same name', async () => {
-		const runner = new MigrationsRunner<{ secret: number }>(storage, [
-			...migrations,
-			{
-				uid: '3',
-				apply: vi.fn(async () => {
-					targetState = 3;
-				}),
-			},
-		]);
+		const runner = new MigrationsRunner<{ secret: number }>({
+			storage,
+			context,
+			migrations: [
+				...migrations,
+				{
+					uid: '3',
+					apply: vi.fn(async () => {
+						targetState = 3;
+					}),
+				},
+			],
+		});
 
-		await expect(runner.migrateAll(context)).rejects.toThrowError(
+		await expect(runner.migrate()).rejects.toThrowError(
 			'Migrations list contains entries with the same identifiers',
 		);
 	});
@@ -118,7 +128,7 @@ describe.sequential('basic migration use case', () => {
 		const previousMigrationsSlice = migrations.slice();
 		migrations.push(...newMigrations);
 
-		await expect(runner.migrateAll(context)).resolves.toEqual(['4', '5']);
+		await expect(runner.migrate()).resolves.toEqual(['4', '5']);
 
 		// Every new migration has been called with context
 		newMigrations.every(({ apply }) => expect(apply.mock.calls).toEqual([[context]]));
@@ -146,12 +156,13 @@ describe.sequential('basic migration use case', () => {
 			},
 		] satisfies Migration[];
 
-		const runner = new MigrationsRunner<{ secret: number }>(storage, [
-			...migrations,
-			...newMigrations,
-		]);
+		const runner = new MigrationsRunner<{ secret: number }>({
+			storage,
+			context,
+			migrations: [...migrations, ...newMigrations],
+		});
 
-		await expect(runner.migrateAll(context)).rejects.toThrowError();
+		await expect(runner.migrate()).rejects.toThrowError();
 
 		expect(newMigrations[0].apply.mock.calls).toEqual([[context]]);
 		expect(newMigrations[1].apply).not.toBeCalled();
@@ -204,13 +215,13 @@ describe.sequential('Migrations with meta', () => {
 	test('Storage receive uid and meta', async () => {
 		const storage = new InMemoryStorage();
 		const logSpy = vi.spyOn(storage, 'log');
-		const runner = new MigrationsRunner<Context, Meta>(storage, migrations);
+		const runner = new MigrationsRunner<Context, Meta>({
+			storage,
+			context: { secret: 'secret' },
+			migrations,
+		});
 
-		await expect(runner.migrateAll({ secret: 'secret' })).resolves.toEqual([
-			'1',
-			'2',
-			'3',
-		]);
+		await expect(runner.migrate()).resolves.toEqual(['1', '2', '3']);
 
 		expect(
 			logSpy.mock.calls,

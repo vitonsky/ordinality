@@ -31,7 +31,6 @@ const storageConstructors = [
 			const sqlite3 = verbose();
 			const db = new sqlite3.Database(':memory:');
 			const query: DBQuery = async (query, bindings) => {
-				console.log({ query, bindings });
 				const rows = await new Promise((resolve, reject) => {
 					db.all(query, bindings, function(err, rows) {
 						if (err) reject(err);
@@ -75,6 +74,7 @@ storageConstructors.forEach((storageInfo) => {
 		test('Run migrations on DB', async () => {
 			const { storage, query } = create();
 			type Context = { query: DBQuery };
+			const context = { query };
 			const migrations: Migration<Context>[] = [
 				{
 					uid: 'create-posts-table',
@@ -97,11 +97,11 @@ storageConstructors.forEach((storageInfo) => {
 			];
 
 			await expect(
-				new MigrationsRunner<Context>(storage, migrations).migrateAll({ query }),
+				new MigrationsRunner<Context>({ storage, migrations, context }).migrate(),
 			).resolves.toEqual(['create-posts-table', 'add-title-to-posts']);
 
 			await expect(
-				new MigrationsRunner<Context>(storage, migrations).migrateAll({ query }),
+				new MigrationsRunner<Context>({ storage, migrations, context }).migrate(),
 			).resolves.toEqual([]);
 
 			await query(
@@ -119,7 +119,7 @@ storageConstructors.forEach((storageInfo) => {
 				},
 			});
 			await expect(
-				new MigrationsRunner<Context>(storage, migrations).migrateAll({ query }),
+				new MigrationsRunner<Context>({ storage, migrations, context }).migrate(),
 			).resolves.toEqual(['add created_at field']);
 
 			await expect(query(`SELECT * FROM posts`, [])).resolves.toEqual([
