@@ -59,10 +59,12 @@ test('Storage may be extended to control meta', async () => {
 		}
 	}
 
-	const storage = new ExtendedMigrationFileStorage(
-		'/foo/bar/another-state.json',
-		z.object({ hash: z.string(), anotherProperty: z.string().optional() }),
-	);
+	const storage = new ExtendedMigrationFileStorage('/foo/bar/another-state.json', {
+		metaScheme: z.object({
+			hash: z.string(),
+			anotherProperty: z.string().optional(),
+		}),
+	});
 
 	await expect(storage.list()).resolves.toEqual([]);
 	expect(getFilesList()).not.toContainEqual('/foo/bar/another-state.json');
@@ -84,7 +86,7 @@ test('Storage may be extended to control meta', async () => {
 });
 
 test('Custom codecs may transparently encode/decode data', async () => {
-	const storage = new MigrationFileStorage('/foo/bar/custom-codec.json', undefined, {
+	const storage = new MigrationFileStorage('/foo/bar/custom-codec.json', {
 		codec: {
 			encode(data) {
 				return Buffer.from('FILE PREFIX' + JSON.stringify(data, undefined, 2));

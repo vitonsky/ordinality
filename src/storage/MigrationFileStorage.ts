@@ -21,8 +21,17 @@ export type State<M = void> = {
 export class MigrationFileStorage<M = void> implements MigrationStorage<M> {
 	constructor(
 		private readonly filename: string,
-		private readonly metaScheme?: M extends z.TypeOf<infer X> ? X : never,
 		private readonly options: {
+			/**
+			 * Scheme validator for a migration meta
+			 */
+			metaScheme?: M extends z.TypeOf<infer X> ? X : never;
+
+			/**
+			 * Custom logic to encode/decode data
+			 *
+			 * By default data will be encoded as JSON string
+			 */
 			codec?: Codec<State<M>>;
 		} = {},
 	) {}
@@ -43,7 +52,7 @@ export class MigrationFileStorage<M = void> implements MigrationStorage<M> {
 	protected getMigrationScheme() {
 		return z.object({
 			name: z.string(),
-			meta: this.metaScheme ?? z.void().optional(),
+			meta: this.options.metaScheme ?? z.void().optional(),
 		});
 	}
 
