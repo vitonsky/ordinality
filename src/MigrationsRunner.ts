@@ -14,14 +14,14 @@ export class MigrationsRunner<
 	 * Executes migrations and returns list with ids of applied migrations
 	 */
 	public async migrateAll(context: Context) {
-		const currentState = await this.storage.getState();
+		const appliedMigrationsId = await this.storage.list();
 
-		if (currentState.migrations.length > this.migrations.length)
+		if (appliedMigrationsId.length > this.migrations.length)
 			throw new Error(
 				'Applied migrations list is larger than provided migrations list',
 			);
 
-		if (currentState.migrations.length !== new Set(currentState.migrations).size)
+		if (appliedMigrationsId.length !== new Set(appliedMigrationsId).size)
 			throw new Error(
 				'Current migrations list contains entries with the same identifiers',
 			);
@@ -36,8 +36,8 @@ export class MigrationsRunner<
 			const migration = this.migrations[i];
 
 			// Ensure migrations is match
-			if (i < currentState.migrations.length) {
-				const currentMigration = currentState.migrations[i];
+			if (i < appliedMigrationsId.length) {
+				const currentMigration = appliedMigrationsId[i];
 
 				if (currentMigration !== migration.uid)
 					throw new Error(

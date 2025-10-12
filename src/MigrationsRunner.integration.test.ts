@@ -55,11 +55,11 @@ describe.sequential('basic migration use case', () => {
 	});
 
 	test('error thrown if state have more steps than migrations list number', async () => {
-		const state = await storage.getState().then((state) => structuredClone(state));
+		const state = await storage.list();
 
-		const anotherStorage = new InMemoryStorage({
-			migrations: [...state.migrations, 'non exists migration'],
-		});
+		const anotherStorage = new InMemoryStorage(
+			new Set([...state, 'non exists migration']),
+		);
 		const runner = new MigrationsRunner<{ secret: number }>(
 			anotherStorage,
 			migrations,
@@ -71,10 +71,8 @@ describe.sequential('basic migration use case', () => {
 	});
 
 	test('error thrown if state migrations names sequences does not match', async () => {
-		const state = await storage.getState().then((state) => structuredClone(state));
-		state.migrations.reverse();
-
-		const anotherStorage = new InMemoryStorage(state);
+		const state = await storage.list();
+		const anotherStorage = new InMemoryStorage(new Set(state.reverse()));
 		const runner = new MigrationsRunner<{ secret: number }>(
 			anotherStorage,
 			migrations,
