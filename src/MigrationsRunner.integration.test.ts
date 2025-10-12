@@ -39,7 +39,7 @@ describe.sequential('basic migration use case', () => {
 	});
 
 	test('all migrations executes in first run', async () => {
-		await expect(runner.migrate()).resolves.toEqual(['1', '2', '3']);
+		await expect(runner.up()).resolves.toEqual(['1', '2', '3']);
 
 		// Every migration has been called with context
 		migrations.every(({ apply }) => expect(apply.mock.calls).toEqual([[context]]));
@@ -49,7 +49,7 @@ describe.sequential('basic migration use case', () => {
 	});
 
 	test('no migrations executes later', async () => {
-		await expect(runner.migrate()).resolves.toEqual([]);
+		await expect(runner.up()).resolves.toEqual([]);
 
 		// Every migration has been called with context
 		migrations.every(({ apply }) => expect(apply).not.toHaveBeenCalled());
@@ -70,7 +70,7 @@ describe.sequential('basic migration use case', () => {
 			context,
 		});
 
-		await expect(runner.migrate()).rejects.toThrowError(
+		await expect(runner.up()).rejects.toThrowError(
 			'Applied migrations list is larger than provided migrations list',
 		);
 	});
@@ -84,7 +84,7 @@ describe.sequential('basic migration use case', () => {
 			context,
 		});
 
-		await expect(runner.migrate()).rejects.toThrowError(
+		await expect(runner.up()).rejects.toThrowError(
 			'Migration #1 with id "1" does not match an applied migration name "3"',
 		);
 	});
@@ -104,7 +104,7 @@ describe.sequential('basic migration use case', () => {
 			],
 		});
 
-		await expect(runner.migrate()).rejects.toThrowError(
+		await expect(runner.up()).rejects.toThrowError(
 			'Migrations list contains entries with duplicate identifiers',
 		);
 	});
@@ -128,7 +128,7 @@ describe.sequential('basic migration use case', () => {
 		const previousMigrationsSlice = migrations.slice();
 		migrations.push(...newMigrations);
 
-		await expect(runner.migrate()).resolves.toEqual(['4', '5']);
+		await expect(runner.up()).resolves.toEqual(['4', '5']);
 
 		// Every new migration has been called with context
 		newMigrations.every(({ apply }) => expect(apply.mock.calls).toEqual([[context]]));
@@ -162,7 +162,7 @@ describe.sequential('basic migration use case', () => {
 			migrations: [...migrations, ...newMigrations],
 		});
 
-		await expect(runner.migrate()).rejects.toThrowError();
+		await expect(runner.up()).rejects.toThrowError();
 
 		expect(newMigrations[0].apply.mock.calls).toEqual([[context]]);
 		expect(newMigrations[1].apply).not.toBeCalled();
@@ -221,7 +221,7 @@ describe.sequential('Migrations with meta', () => {
 			migrations,
 		});
 
-		await expect(runner.migrate()).resolves.toEqual(['1', '2', '3']);
+		await expect(runner.up()).resolves.toEqual(['1', '2', '3']);
 
 		expect(
 			logSpy.mock.calls,
@@ -255,33 +255,33 @@ describe('Partial migrations execution with ranges', () => {
 		});
 
 		await expect(runner.executed()).resolves.toEqual([]);
-		await expect(runner.migrate({ step: 1 })).resolves.toEqual(['change#1']);
+		await expect(runner.up({ step: 1 })).resolves.toEqual(['change#1']);
 		await expect(runner.executed()).resolves.toEqual(['change#1']);
 
-		await expect(runner.migrate({ step: 1 })).resolves.toEqual(['change#2']);
+		await expect(runner.up({ step: 1 })).resolves.toEqual(['change#2']);
 		await expect(runner.executed()).resolves.toEqual(['change#1', 'change#2']);
 
-		await expect(runner.migrate({ step: 3 })).resolves.toEqual([
+		await expect(runner.up({ step: 3 })).resolves.toEqual([
 			'change#3',
 			'change#4',
 			'change#5',
 		]);
 
-		await expect(runner.migrate({ step: 0 })).resolves.toEqual([]);
+		await expect(runner.up({ step: 0 })).resolves.toEqual([]);
 
 		await expect(
-			runner.migrate({
+			runner.up({
 				step: -10,
 			}),
 		).rejects.toThrowError('Invalid range: Migration with index -6 does not exist');
 
 		await expect(
-			runner.migrate({
+			runner.up({
 				step: 10,
 			}),
 		).rejects.toThrowError('Invalid range: Migration with index 14 does not exist');
 
-		await expect(runner.migrate({ step: 5 })).resolves.toEqual([
+		await expect(runner.up({ step: 5 })).resolves.toEqual([
 			'change#6',
 			'change#7',
 			'change#8',
@@ -290,7 +290,7 @@ describe('Partial migrations execution with ranges', () => {
 		]);
 
 		await expect(
-			runner.migrate({
+			runner.up({
 				step: 1,
 			}),
 		).rejects.toThrowError('Invalid range: Migration with index 10 does not exist');
@@ -304,32 +304,32 @@ describe('Partial migrations execution with ranges', () => {
 		});
 
 		await expect(runner.executed()).resolves.toEqual([]);
-		await expect(runner.migrate({ to: 'change#1' })).resolves.toEqual(['change#1']);
-		await expect(runner.migrate({ to: 'change#1' })).resolves.toEqual([]);
-		await expect(runner.migrate({ to: 'change#2' })).resolves.toEqual(['change#2']);
-		await expect(runner.migrate({ to: 'change#5' })).resolves.toEqual([
+		await expect(runner.up({ to: 'change#1' })).resolves.toEqual(['change#1']);
+		await expect(runner.up({ to: 'change#1' })).resolves.toEqual([]);
+		await expect(runner.up({ to: 'change#2' })).resolves.toEqual(['change#2']);
+		await expect(runner.up({ to: 'change#5' })).resolves.toEqual([
 			'change#3',
 			'change#4',
 			'change#5',
 		]);
 
-		await expect(runner.migrate({ to: 'non exists' })).rejects.toThrowError(
+		await expect(runner.up({ to: 'non exists' })).rejects.toThrowError(
 			'Invalid range: Not found migration with name "non exists"',
 		);
 
-		await expect(runner.migrate({ to: 5 })).resolves.toEqual([]);
-		await expect(runner.migrate({ to: 6 })).resolves.toEqual(['change#6']);
+		await expect(runner.up({ to: 5 })).resolves.toEqual([]);
+		await expect(runner.up({ to: 6 })).resolves.toEqual(['change#6']);
 
-		await expect(runner.migrate({ to: 2 })).rejects.toThrowError(
+		await expect(runner.up({ to: 2 })).rejects.toThrowError(
 			'Invalid range: Migration "change#2" is behind of last applied migration',
 		);
 
-		await expect(runner.migrate({ to: 10 })).resolves.toEqual([
+		await expect(runner.up({ to: 10 })).resolves.toEqual([
 			'change#7',
 			'change#8',
 			'change#9',
 			'change#10',
 		]);
-		await expect(runner.migrate({ to: 10 })).resolves.toEqual([]);
+		await expect(runner.up({ to: 10 })).resolves.toEqual([]);
 	});
 });

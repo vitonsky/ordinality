@@ -15,7 +15,56 @@ type Range<K extends string> =
 			step: number;
 	  };
 
-// TODO: add method to down migrations
+const findMigrationIndexByRange = <T extends string = string>({
+	range,
+	items,
+	currentIndex,
+	direction,
+}: {
+	range: Range<T>;
+	items: string[];
+	currentIndex: number;
+	direction: 'back' | 'forward';
+}) => {
+	let index: number | null = null;
+
+	if ('step' in range) {
+		index = currentIndex + range.step * (direction === 'back' ? -1 : 1);
+	} else {
+		if (typeof range.to === 'number') {
+			// We subtract 1 since user provides sequential number, not an index
+			index = range.to - 1;
+		} else {
+			const foundIndex = items.indexOf(range.to);
+			if (foundIndex === -1)
+				throw new Error(
+					`Invalid range: Not found migration with name "${range.to}"`,
+				);
+
+			// We use index, since found command is inclusive
+			index = foundIndex;
+		}
+	}
+
+	const isIndexOutOfBound = index >= items.length;
+	if (index < 0 || isIndexOutOfBound)
+		throw new Error(`Invalid range: Migration with index ${index} does not exist`);
+
+	if (direction === 'forward') {
+		if (index < currentIndex)
+			throw new Error(
+				`Invalid range: Migration "${items[index]}" is behind of last applied migration`,
+			);
+	} else {
+		if (index > currentIndex)
+			throw new Error(
+				`Invalid range: Migration "${items[index]}" is not applied yet`,
+			);
+	}
+
+	return index;
+};
+
 export class MigrationsRunner<
 	Context = void,
 	Meta extends Record<any, any> | void = void,
@@ -91,44 +140,19 @@ export class MigrationsRunner<
 	/**
 	 * Executes migrations and returns list with ids of applied migrations
 	 */
-	public async migrate(range?: Range<string>) {
+	public async up(range?: Range<string>) {
 		const { migrations, storage, context } = this.config;
 
 		const { executed, all } = await this.getState();
 
-		const currentMigrationIndex = executed.length - 1;
-		let endIndex: number | null = null;
-		if (range) {
-			if ('step' in range) {
-				endIndex = currentMigrationIndex + range.step;
-			} else {
-				if (typeof range.to === 'number') {
-					// We subtract 1 since user provides sequential number, not an index
-					endIndex = range.to - 1;
-				} else {
-					const index = all.indexOf(range.to);
-					if (index === -1)
-						throw new Error(
-							`Invalid range: Not found migration with name "${range.to}"`,
-						);
-
-					// We use index, since found command is inclusive
-					endIndex = index;
-				}
-			}
-
-			const isIndexOutOfBound = endIndex >= all.length;
-			if (endIndex < 0 || isIndexOutOfBound)
-				throw new Error(
-					`Invalid range: Migration with index ${endIndex} does not exist`,
-				);
-
-			const isIndexBehind = currentMigrationIndex > endIndex;
-			if (isIndexBehind)
-				throw new Error(
-					`Invalid range: Migration "${all[endIndex]}" is behind of last applied migration`,
-				);
-		}
+		const endIndex = range
+			? findMigrationIndexByRange({
+					range,
+					items: all,
+					currentIndex: executed.length - 1,
+					direction: 'forward',
+				})
+			: null;
 
 		// Ensure current state is valid
 		const appliedMigrations: string[] = [];
