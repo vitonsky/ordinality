@@ -1,5 +1,5 @@
 import { Migration } from './Migration';
-import { MigrationStorage } from './MigrationStorage';
+import { MigrationStorage } from './storage/MigrationStorage';
 
 export class MigrationsRunner<Context = void> {
 	constructor(

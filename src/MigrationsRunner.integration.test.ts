@@ -1,6 +1,6 @@
-import { InMemoryStorage } from './InMemoryStorage';
 import { Migration } from './Migration';
 import { MigrationsRunner } from './MigrationsRunner';
+import { InMemoryStorage } from './storage/InMemoryStorage';
 
 describe.sequential('basic migration use case', () => {
 	let targetState = 0;
