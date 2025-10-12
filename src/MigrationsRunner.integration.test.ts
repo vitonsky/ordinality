@@ -35,7 +35,7 @@ describe.sequential('basic migration use case', () => {
 	});
 
 	test('all migrations executes in first run', async () => {
-		await runner.migrateAll(context);
+		await expect(runner.migrateAll(context)).resolves.toEqual(['1', '2', '3']);
 
 		// Every migration has been called with context
 		migrations.every(({ apply }) => expect(apply.mock.calls).toEqual([[context]]));
@@ -45,7 +45,7 @@ describe.sequential('basic migration use case', () => {
 	});
 
 	test('no migrations executes later', async () => {
-		await runner.migrateAll(context);
+		await expect(runner.migrateAll(context)).resolves.toEqual([]);
 
 		// Every migration has been called with context
 		migrations.every(({ apply }) => expect(apply).not.toHaveBeenCalled());
@@ -120,7 +120,7 @@ describe.sequential('basic migration use case', () => {
 		const previousMigrationsSlice = migrations.slice();
 		migrations.push(...newMigrations);
 
-		await runner.migrateAll(context);
+		await expect(runner.migrateAll(context)).resolves.toEqual(['4', '5']);
 
 		// Every new migration has been called with context
 		newMigrations.every(({ apply }) => expect(apply.mock.calls).toEqual([[context]]));
@@ -208,7 +208,11 @@ describe.sequential('Migrations with meta', () => {
 		const logSpy = vi.spyOn(storage, 'log');
 		const runner = new MigrationsRunner<Context, Meta>(storage, migrations);
 
-		await expect(runner.migrateAll({ secret: 'secret' })).resolves.not.toThrowError();
+		await expect(runner.migrateAll({ secret: 'secret' })).resolves.toEqual([
+			'1',
+			'2',
+			'3',
+		]);
 
 		expect(
 			logSpy.mock.calls,

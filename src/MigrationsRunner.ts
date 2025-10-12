@@ -10,6 +10,9 @@ export class MigrationsRunner<
 		private readonly migrations: Migration<Context, Meta>[],
 	) {}
 
+	/**
+	 * Executes migrations and returns list with ids of applied migrations
+	 */
 	public async migrateAll(context: Context) {
 		const currentState = await this.storage.getState();
 
@@ -28,6 +31,7 @@ export class MigrationsRunner<
 			throw new Error('Migrations list contains entries with the same identifiers');
 
 		// Ensure current state is valid
+		const appliedMigrations: string[] = [];
 		for (let i = 0; i < this.migrations.length; i++) {
 			const migration = this.migrations[i];
 
@@ -49,6 +53,9 @@ export class MigrationsRunner<
 			// Apply migration
 			await migration.apply(context);
 			await this.storage.log(migration.uid, meta);
+			appliedMigrations.push(migration.uid);
 		}
+
+		return appliedMigrations;
 	}
 }
