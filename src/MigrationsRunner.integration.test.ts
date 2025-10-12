@@ -85,7 +85,7 @@ describe.sequential('basic migration use case', () => {
 		});
 
 		await expect(runner.migrate()).rejects.toThrowError(
-			'Migration uid does not match for transaction #1',
+			'Migration #1 with id "1" does not match an applied migration name "3"',
 		);
 	});
 
@@ -105,7 +105,7 @@ describe.sequential('basic migration use case', () => {
 		});
 
 		await expect(runner.migrate()).rejects.toThrowError(
-			'Migrations list contains entries with the same identifiers',
+			'Migrations list contains entries with duplicate identifiers',
 		);
 	});
 
@@ -228,5 +228,108 @@ describe.sequential('Migrations with meta', () => {
 			'Call storage method with uid and meta',
 		).toMatchSnapshot();
 		expect(targetState).toBe(3);
+	});
+});
+
+describe('Partial migrations execution with ranges', () => {
+	const genDummyMigrations = (count: number) =>
+		Array(count)
+			.fill(null)
+			.map(
+				(_, index) =>
+					({
+						uid: `change#${index + 1}`,
+						apply: vi.fn(),
+					}) satisfies Migration,
+			);
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+	});
+
+	test('Migrate by steps', async () => {
+		const storage = new InMemoryStorage();
+		const runner = new MigrationsRunner({
+			storage,
+			migrations: genDummyMigrations(10),
+		});
+
+		await expect(runner.executed()).resolves.toEqual([]);
+		await expect(runner.migrate({ step: 1 })).resolves.toEqual(['change#1']);
+		await expect(runner.executed()).resolves.toEqual(['change#1']);
+
+		await expect(runner.migrate({ step: 1 })).resolves.toEqual(['change#2']);
+		await expect(runner.executed()).resolves.toEqual(['change#1', 'change#2']);
+
+		await expect(runner.migrate({ step: 3 })).resolves.toEqual([
+			'change#3',
+			'change#4',
+			'change#5',
+		]);
+
+		await expect(runner.migrate({ step: 0 })).resolves.toEqual([]);
+
+		await expect(
+			runner.migrate({
+				step: -10,
+			}),
+		).rejects.toThrowError('Invalid range: Migration with index -6 does not exist');
+
+		await expect(
+			runner.migrate({
+				step: 10,
+			}),
+		).rejects.toThrowError('Invalid range: Migration with index 14 does not exist');
+
+		await expect(runner.migrate({ step: 5 })).resolves.toEqual([
+			'change#6',
+			'change#7',
+			'change#8',
+			'change#9',
+			'change#10',
+		]);
+
+		await expect(
+			runner.migrate({
+				step: 1,
+			}),
+		).rejects.toThrowError('Invalid range: Migration with index 10 does not exist');
+	});
+
+	test('Migrate by names', async () => {
+		const storage = new InMemoryStorage();
+		const runner = new MigrationsRunner({
+			storage,
+			migrations: genDummyMigrations(10),
+		});
+
+		await expect(runner.executed()).resolves.toEqual([]);
+		await expect(runner.migrate({ to: 'change#1' })).resolves.toEqual(['change#1']);
+		await expect(runner.migrate({ to: 'change#1' })).resolves.toEqual([]);
+		await expect(runner.migrate({ to: 'change#2' })).resolves.toEqual(['change#2']);
+		await expect(runner.migrate({ to: 'change#5' })).resolves.toEqual([
+			'change#3',
+			'change#4',
+			'change#5',
+		]);
+
+		await expect(runner.migrate({ to: 'non exists' })).rejects.toThrowError(
+			'Invalid range: Not found migration with name "non exists"',
+		);
+
+		await expect(runner.migrate({ to: 5 })).resolves.toEqual([]);
+		await expect(runner.migrate({ to: 6 })).resolves.toEqual(['change#6']);
+
+		await expect(runner.migrate({ to: 2 })).rejects.toThrowError(
+			'Invalid range: Migration "change#2" is behind of last applied migration',
+		);
+
+		await expect(runner.migrate({ to: 10 })).resolves.toEqual([
+			'change#7',
+			'change#8',
+			'change#9',
+			'change#10',
+		]);
+		await expect(runner.migrate({ to: 10 })).resolves.toEqual([]);
 	});
 });
