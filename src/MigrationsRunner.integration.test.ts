@@ -165,3 +165,55 @@ describe.sequential('basic migration use case', () => {
 		expect(targetState).toBe(5);
 	});
 });
+
+describe.sequential('Migrations with meta', () => {
+	type Context = { secret: string };
+	type Meta = { hash: string };
+
+	let targetState = 0;
+	const migrations = [
+		{
+			uid: '1',
+			meta: { hash: '1' },
+			apply: vi.fn(async () => {
+				targetState = 1;
+			}),
+		},
+		{
+			uid: '2',
+			async meta(context) {
+				return {
+					hash: `2 and context value: ${context.secret}`,
+				};
+			},
+			apply: vi.fn(async () => {
+				targetState = 2;
+			}),
+		},
+		{
+			uid: '3',
+			async meta(context) {
+				return {
+					hash: `3 and context value: ${context.secret}`,
+				};
+			},
+			apply: vi.fn(async () => {
+				targetState = 3;
+			}),
+		},
+	] satisfies Migration<Context, Meta>[];
+
+	test('Storage receive uid and meta', async () => {
+		const storage = new InMemoryStorage();
+		const logSpy = vi.spyOn(storage, 'log');
+		const runner = new MigrationsRunner<Context, Meta>(storage, migrations);
+
+		await expect(runner.migrateAll({ secret: 'secret' })).resolves.not.toThrowError();
+
+		expect(
+			logSpy.mock.calls,
+			'Call storage method with uid and meta',
+		).toMatchSnapshot();
+		expect(targetState).toBe(3);
+	});
+});

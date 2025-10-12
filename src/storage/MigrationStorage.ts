@@ -1,6 +1,7 @@
 export type MigrationsState = { migrations: string[] };
 
-export interface MigrationStorage {
+export interface MigrationStorage<Meta = void> {
 	getState(): Promise<MigrationsState>;
-	push(uid: string): Promise<void>;
+
+	log(uid: string, meta: Meta): Promise<void>;
 }

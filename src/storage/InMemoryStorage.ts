@@ -22,7 +22,7 @@ export class InMemoryStorage implements MigrationStorage {
 		return structuredClone(this.state);
 	}
 
-	async push(uid: string): Promise<void> {
+	async log(uid: string): Promise<void> {
 		const state = await this.getState();
 		state.migrations.push(uid);
 
