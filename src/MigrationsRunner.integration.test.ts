@@ -330,7 +330,6 @@ describe('Partial migrations execution with ranges', () => {
 		await expect(runner.up({ to: 10 })).resolves.toEqual([]);
 	});
 
-	// TODO: add tests with rollback migrations with not implemented revert method
 	test('Revert migrations by steps', async () => {
 		const storage = new InMemoryStorage();
 		const runner = new MigrationsRunner({
@@ -434,5 +433,50 @@ describe('Partial migrations execution with ranges', () => {
 			runner.down({ to: 0 }),
 			'rollback up to current makes no changes',
 		).resolves.toEqual([]);
+	});
+
+	test('Attempt to rollback migration with no "revert" method throws error', async () => {
+		const migrations = genDummyMigrations(10) as Migration[];
+		delete migrations[8].revert;
+
+		const storage = new InMemoryStorage();
+		const runner = new MigrationsRunner({
+			storage,
+			migrations,
+		});
+
+		await expect(runner.executed()).resolves.toEqual([]);
+		await expect(runner.up(), 'Execute migrations').resolves.toHaveLength(10);
+		await expect(runner.executed()).resolves.toEqual([
+			'change#1',
+			'change#2',
+			'change#3',
+			'change#4',
+			'change#5',
+			'change#6',
+			'change#7',
+			'change#8',
+			'change#9',
+			'change#10',
+		]);
+
+		await expect(
+			runner.down({ to: 'change#5' }),
+			'rollback up to current makes no changes',
+		).rejects.toThrowError(
+			'Migration "change#9" cannot be reverted because have no "revert" method',
+		);
+
+		await expect(runner.executed()).resolves.toEqual([
+			'change#1',
+			'change#2',
+			'change#3',
+			'change#4',
+			'change#5',
+			'change#6',
+			'change#7',
+			'change#8',
+			'change#9',
+		]);
 	});
 });
