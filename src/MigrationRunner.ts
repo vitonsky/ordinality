@@ -1,5 +1,5 @@
-import { Migration } from './Migration';
-import { MigrationStorage } from './storage/MigrationStorage';
+import type { Migration } from './Migration';
+import type { MigrationStorage } from './storage/MigrationStorage';
 
 export type Range<K extends string> =
 	| {

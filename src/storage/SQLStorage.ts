@@ -1,7 +1,7 @@
 import { SQLCompiler } from 'nano-queries/compilers/SQLCompiler';
 import { ConfigurableSQLBuilder } from 'nano-queries/sql/ConfigurableSQLBuilder';
 
-import { MigrationStorage } from './MigrationStorage';
+import type { MigrationStorage } from './MigrationStorage';
 
 type BasicSQLTypes = string | number;
 

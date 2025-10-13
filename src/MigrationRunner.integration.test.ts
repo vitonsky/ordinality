@@ -1,4 +1,4 @@
-import { Migration } from './Migration';
+import type { Migration } from './Migration';
 import { MigrationRunner } from './MigrationRunner';
 import { InMemoryStorage } from './storage/InMemoryStorage';
 

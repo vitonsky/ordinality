@@ -3,7 +3,7 @@
 import { verbose } from 'sqlite3';
 import { PGlite } from '@electric-sql/pglite';
 
-import { Migration } from '../Migration';
+import type { Migration } from '../Migration';
 import { MigrationRunner } from '../MigrationRunner';
 import { DBQuery, getSQLCompilerPreset, SQLStorage } from './SQLStorage';
 

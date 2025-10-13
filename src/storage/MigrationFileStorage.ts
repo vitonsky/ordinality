@@ -3,7 +3,7 @@ import path from 'path';
 import { z } from 'zod';
 
 import { mkdir, readFile, writeFile } from 'fs/promises';
-import { MigrationStorage } from './MigrationStorage';
+import type { MigrationStorage } from './MigrationStorage';
 
 export type Codec<T> = {
 	encode: (data: T) => Buffer;

@@ -1,4 +1,4 @@
-import { MigrationStorage } from './MigrationStorage';
+import type { MigrationStorage } from './MigrationStorage';
 
 export class InMemoryStorage<M = void> implements MigrationStorage<M> {
 	constructor(private readonly state: Set<string> = new Set()) {}
