@@ -4,7 +4,7 @@ import { verbose } from 'sqlite3';
 import { PGlite } from '@electric-sql/pglite';
 
 import { Migration } from '../Migration';
-import { MigrationsRunner } from '../MigrationsRunner';
+import { MigrationRunner } from '../MigrationRunner';
 import { DBQuery, getSQLCompilerPreset, SQLStorage } from './SQLStorage';
 
 const storageConstructors = [
@@ -97,11 +97,11 @@ storageConstructors.forEach((storageInfo) => {
 			];
 
 			await expect(
-				new MigrationsRunner<Context>({ storage, migrations, context }).up(),
+				new MigrationRunner<Context>({ storage, migrations, context }).up(),
 			).resolves.toEqual(['create-posts-table', 'add-title-to-posts']);
 
 			await expect(
-				new MigrationsRunner<Context>({ storage, migrations, context }).up(),
+				new MigrationRunner<Context>({ storage, migrations, context }).up(),
 			).resolves.toEqual([]);
 
 			await query(
@@ -119,7 +119,7 @@ storageConstructors.forEach((storageInfo) => {
 				},
 			});
 			await expect(
-				new MigrationsRunner<Context>({ storage, migrations, context }).up(),
+				new MigrationRunner<Context>({ storage, migrations, context }).up(),
 			).resolves.toEqual(['add created_at field']);
 
 			await expect(query(`SELECT * FROM posts`, [])).resolves.toEqual([

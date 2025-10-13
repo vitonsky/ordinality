@@ -1,7 +1,7 @@
 import { Migration } from './Migration';
 import { MigrationStorage } from './storage/MigrationStorage';
 
-type Range<K extends string> =
+export type Range<K extends string> =
 	| {
 			/**
 			 * Name of migration or its index
@@ -15,7 +15,7 @@ type Range<K extends string> =
 			step: number;
 	  };
 
-const findMigrationIndexByRange = <T extends string = string>({
+export const findMigrationIndexByRange = <T extends string = string>({
 	range,
 	items,
 	currentIndex,
@@ -87,7 +87,7 @@ const findMigrationIndexByRange = <T extends string = string>({
 	return index;
 };
 
-export class MigrationsRunner<
+export class MigrationRunner<
 	Context = void,
 	Meta extends Record<any, any> | void = void,
 > {

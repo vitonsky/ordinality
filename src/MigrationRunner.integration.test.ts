@@ -1,5 +1,5 @@
 import { Migration } from './Migration';
-import { MigrationsRunner } from './MigrationsRunner';
+import { MigrationRunner } from './MigrationRunner';
 import { InMemoryStorage } from './storage/InMemoryStorage';
 
 describe.sequential('basic migration use case', () => {
@@ -28,7 +28,7 @@ describe.sequential('basic migration use case', () => {
 	const context = { secret: Math.random() };
 
 	const storage = new InMemoryStorage();
-	const runner = new MigrationsRunner({
+	const runner = new MigrationRunner({
 		storage,
 		migrations,
 		context,
@@ -64,7 +64,7 @@ describe.sequential('basic migration use case', () => {
 		const anotherStorage = new InMemoryStorage(
 			new Set([...state, 'non exists migration']),
 		);
-		const runner = new MigrationsRunner<{ secret: number }>({
+		const runner = new MigrationRunner<{ secret: number }>({
 			storage: anotherStorage,
 			migrations,
 			context,
@@ -78,7 +78,7 @@ describe.sequential('basic migration use case', () => {
 	test('error thrown if state migrations names sequences does not match', async () => {
 		const state = await storage.list();
 		const anotherStorage = new InMemoryStorage(new Set(state.reverse()));
-		const runner = new MigrationsRunner<{ secret: number }>({
+		const runner = new MigrationRunner<{ secret: number }>({
 			storage: anotherStorage,
 			migrations,
 			context,
@@ -90,7 +90,7 @@ describe.sequential('basic migration use case', () => {
 	});
 
 	test('error thrown when provided migrations with the same name', async () => {
-		const runner = new MigrationsRunner<{ secret: number }>({
+		const runner = new MigrationRunner<{ secret: number }>({
 			storage,
 			context,
 			migrations: [
@@ -156,7 +156,7 @@ describe.sequential('basic migration use case', () => {
 			},
 		] satisfies Migration[];
 
-		const runner = new MigrationsRunner<{ secret: number }>({
+		const runner = new MigrationRunner<{ secret: number }>({
 			storage,
 			context,
 			migrations: [...migrations, ...newMigrations],
@@ -215,7 +215,7 @@ describe.sequential('Migrations with meta', () => {
 	test('Storage receive uid and meta', async () => {
 		const storage = new InMemoryStorage();
 		const logSpy = vi.spyOn(storage, 'log');
-		const runner = new MigrationsRunner<Context, Meta>({
+		const runner = new MigrationRunner<Context, Meta>({
 			storage,
 			context: { secret: 'secret' },
 			migrations,
@@ -246,7 +246,7 @@ const genDummyMigrations = (count: number) =>
 describe('Partial migrations execution with ranges', () => {
 	test('Migrate by steps', async () => {
 		const storage = new InMemoryStorage();
-		const runner = new MigrationsRunner({
+		const runner = new MigrationRunner({
 			storage,
 			migrations: genDummyMigrations(10),
 		});
@@ -295,7 +295,7 @@ describe('Partial migrations execution with ranges', () => {
 
 	test('Migrate by names', async () => {
 		const storage = new InMemoryStorage();
-		const runner = new MigrationsRunner({
+		const runner = new MigrationRunner({
 			storage,
 			migrations: genDummyMigrations(10),
 		});
@@ -332,7 +332,7 @@ describe('Partial migrations execution with ranges', () => {
 
 	test('Revert migrations by steps', async () => {
 		const storage = new InMemoryStorage();
-		const runner = new MigrationsRunner({
+		const runner = new MigrationRunner({
 			storage,
 			migrations: genDummyMigrations(10),
 		});
@@ -368,7 +368,7 @@ describe('Partial migrations execution with ranges', () => {
 
 	test('Revert migrations by names', async () => {
 		const storage = new InMemoryStorage();
-		const runner = new MigrationsRunner({
+		const runner = new MigrationRunner({
 			storage,
 			migrations: genDummyMigrations(10),
 		});
@@ -440,7 +440,7 @@ describe('Partial migrations execution with ranges', () => {
 		delete migrations[8].revert;
 
 		const storage = new InMemoryStorage();
-		const runner = new MigrationsRunner({
+		const runner = new MigrationRunner({
 			storage,
 			migrations,
 		});
