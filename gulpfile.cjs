@@ -26,7 +26,7 @@ function tsCompilerFactory(outPath, settings) {
 function build() {
 	return gulp.parallel([
 		// Compile TS files
-		Object.assign(tsCompilerFactory(buildDir, { module: 'commonjs' }), {
+		Object.assign(tsCompilerFactory(buildDir, { module: 'esnext' }), {
 			displayName: 'TSC:esnext',
 		}),
 
