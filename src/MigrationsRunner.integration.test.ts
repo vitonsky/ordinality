@@ -231,22 +231,19 @@ describe.sequential('Migrations with meta', () => {
 	});
 });
 
+const genDummyMigrations = (count: number) =>
+	Array(count)
+		.fill(null)
+		.map(
+			(_, index) =>
+				({
+					uid: `change#${index + 1}`,
+					apply: vi.fn(),
+					revert: vi.fn(),
+				}) satisfies Migration,
+		);
+
 describe('Partial migrations execution with ranges', () => {
-	const genDummyMigrations = (count: number) =>
-		Array(count)
-			.fill(null)
-			.map(
-				(_, index) =>
-					({
-						uid: `change#${index + 1}`,
-						apply: vi.fn(),
-					}) satisfies Migration,
-			);
-
-	beforeEach(() => {
-		vi.clearAllMocks();
-	});
-
 	test('Migrate by steps', async () => {
 		const storage = new InMemoryStorage();
 		const runner = new MigrationsRunner({
@@ -331,5 +328,111 @@ describe('Partial migrations execution with ranges', () => {
 			'change#10',
 		]);
 		await expect(runner.up({ to: 10 })).resolves.toEqual([]);
+	});
+
+	// TODO: add tests with rollback migrations with not implemented revert method
+	test('Revert migrations by steps', async () => {
+		const storage = new InMemoryStorage();
+		const runner = new MigrationsRunner({
+			storage,
+			migrations: genDummyMigrations(10),
+		});
+
+		await expect(runner.executed()).resolves.toEqual([]);
+		await expect(runner.up(), 'Execute migrations').resolves.toHaveLength(10);
+		await expect(runner.down({ step: 1 })).resolves.toEqual(['change#10']);
+		await expect(runner.down({ step: 1 })).resolves.toEqual(['change#9']);
+		await expect(runner.down({ step: 3 })).resolves.toEqual([
+			'change#8',
+			'change#7',
+			'change#6',
+		]);
+		await expect(runner.down({ step: 0 })).resolves.toEqual([]);
+
+		await expect(runner.down({ step: 10 })).rejects.toThrowError(
+			'Invalid range: Migration with index -5 does not exist',
+		);
+		await expect(runner.down({ step: -10 })).rejects.toThrowError(
+			'Invalid range: Migration with index 15 does not exist',
+		);
+
+		await expect(runner.down({ step: 5 })).resolves.toEqual([
+			'change#5',
+			'change#4',
+			'change#3',
+			'change#2',
+			'change#1',
+		]);
+
+		await expect(runner.down({ step: 0 })).resolves.toEqual([]);
+	});
+
+	test('Revert migrations by names', async () => {
+		const storage = new InMemoryStorage();
+		const runner = new MigrationsRunner({
+			storage,
+			migrations: genDummyMigrations(10),
+		});
+
+		await expect(runner.executed()).resolves.toEqual([]);
+		await expect(runner.up(), 'Execute migrations').resolves.toHaveLength(10);
+
+		await expect(
+			runner.down({ to: 'change#10' }),
+			'rollback up to current makes no changes',
+		).resolves.toEqual([]);
+
+		await expect(
+			runner.down({ to: 'change#9' }),
+			'rollback to previous migration',
+		).resolves.toEqual(['change#10']);
+		await expect(
+			runner.down({ to: 'change#9' }),
+			'rollback up to current makes no changes',
+		).resolves.toEqual([]);
+
+		await expect(
+			runner.down({ to: 'change#6' }),
+			'rollback up to specific migration',
+		).resolves.toEqual(['change#9', 'change#8', 'change#7']);
+
+		await expect(
+			runner.down({ to: 5 }),
+			'rollback up to migration number',
+		).resolves.toEqual(['change#6']);
+		await expect(
+			runner.down({ to: 5 }),
+			'rollback up to current migration number makes no changes',
+		).resolves.toEqual([]);
+
+		await expect(
+			runner.down({ to: 6 }),
+			'rollback to not applied migration is not possible',
+		).rejects.toThrowError('Invalid range: Migration "change#7" is not applied yet');
+		await expect(
+			runner.down({ to: 9 }),
+			'rollback to not applied migration is not possible',
+		).rejects.toThrowError('Invalid range: Migration "change#10" is not applied yet');
+
+		await expect(
+			runner.down({ to: 10 }),
+			'rollback to non exist migration is not possible',
+		).rejects.toThrowError('Invalid range: Migration with index 10 does not exist');
+		await expect(
+			runner.down({ to: -10 }),
+			'rollback to non exist migration is not possible',
+		).rejects.toThrowError('Invalid range: Migration with index -10 does not exist');
+
+		await expect(runner.down({ to: 0 }), 'rollback all migrations').resolves.toEqual([
+			'change#5',
+			'change#4',
+			'change#3',
+			'change#2',
+			'change#1',
+		]);
+		await expect(
+			runner.down({ to: 0 }),
+			'rollback up to current makes no changes',
+		).resolves.toEqual([]);
 	});
 });

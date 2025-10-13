@@ -24,16 +24,30 @@ const findMigrationIndexByRange = <T extends string = string>({
 	range: Range<T>;
 	items: string[];
 	currentIndex: number;
-	direction: 'back' | 'forward';
+	direction: 'backward' | 'forward';
 }) => {
+	const isBackward = direction === 'backward';
 	let index: number | null = null;
 
 	if ('step' in range) {
-		index = currentIndex + range.step * (direction === 'back' ? -1 : 1);
+		// Step 0 means do nothing
+		if (range.step === 0) {
+			return null;
+		}
+
+		// In backward mode we start from current migration,
+		// so step: 1 mean current, step: 2 mean current -1, etc.
+		// In forward mode step: 1 mean current + 1, etc.
+		const stepWithOffset = isBackward ? range.step - 1 : range.step;
+		index = currentIndex + stepWithOffset * (isBackward ? -1 : 1);
 	} else {
 		if (typeof range.to === 'number') {
-			// We subtract 1 since user provides sequential number, not an index
-			index = range.to - 1;
+			if (isBackward) {
+				index = range.to;
+			} else {
+				// We subtract 1 since user provides sequential number, not an index
+				index = range.to - 1;
+			}
 		} else {
 			const foundIndex = items.indexOf(range.to);
 			if (foundIndex === -1)
@@ -41,24 +55,32 @@ const findMigrationIndexByRange = <T extends string = string>({
 					`Invalid range: Not found migration with name "${range.to}"`,
 				);
 
-			// We use index, since found command is inclusive
-			index = foundIndex;
+			if (isBackward) {
+				index = foundIndex + 1;
+				if (index >= items.length) return null;
+			} else {
+				// We use index, since found command is inclusive
+				index = foundIndex;
+			}
 		}
 	}
+
+	// Current index + 1 means "stay on current migration"
+	if (isBackward && index === currentIndex + 1) return null;
 
 	const isIndexOutOfBound = index >= items.length;
 	if (index < 0 || isIndexOutOfBound)
 		throw new Error(`Invalid range: Migration with index ${index} does not exist`);
 
-	if (direction === 'forward') {
-		if (index < currentIndex)
-			throw new Error(
-				`Invalid range: Migration "${items[index]}" is behind of last applied migration`,
-			);
-	} else {
+	if (isBackward) {
 		if (index > currentIndex)
 			throw new Error(
 				`Invalid range: Migration "${items[index]}" is not applied yet`,
+			);
+	} else {
+		if (index < currentIndex)
+			throw new Error(
+				`Invalid range: Migration "${items[index]}" is behind of last applied migration`,
 			);
 	}
 
@@ -145,13 +167,14 @@ export class MigrationsRunner<
 
 		const { executed, all } = await this.getState();
 
+		const currentIndex = executed.length - 1;
 		const endIndex = range
-			? findMigrationIndexByRange({
+			? (findMigrationIndexByRange({
 					range,
 					items: all,
-					currentIndex: executed.length - 1,
+					currentIndex,
 					direction: 'forward',
-				})
+				}) ?? currentIndex)
 			: null;
 
 		// Ensure current state is valid
@@ -172,5 +195,50 @@ export class MigrationsRunner<
 		}
 
 		return appliedMigrations;
+	}
+
+	/**
+	 * Roll back migrations and returns list with ids of reverted migrations
+	 *
+	 * Throw error in case migration cannot be reverted
+	 */
+	public async down(range?: Range<string>) {
+		const { migrations, storage, context } = this.config;
+
+		const { executed, all } = await this.getState();
+
+		const currentIndex = executed.length - 1;
+		const endIndex = range
+			? (findMigrationIndexByRange({
+					range,
+					items: all,
+					currentIndex,
+					direction: 'backward',
+				}) ?? currentIndex + 1)
+			: null;
+
+		// Ensure current state is valid
+		const revertedMigrations: string[] = [];
+		for (let i = currentIndex; i >= (endIndex ?? 0); i--) {
+			const migration = migrations[i];
+
+			const rawMeta = migration.meta;
+			const meta: Meta =
+				typeof rawMeta === 'function'
+					? await rawMeta(context as Context)
+					: rawMeta;
+
+			if (!migration.revert)
+				throw new Error(
+					`Migration "${migration.uid}" cannot be reverted because have no "revert" method`,
+				);
+
+			// Apply migration
+			await migration.revert(context as Context);
+			await storage.unlog(migration.uid, meta);
+			revertedMigrations.push(migration.uid);
+		}
+
+		return revertedMigrations;
 	}
 }

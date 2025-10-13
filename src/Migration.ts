@@ -4,9 +4,14 @@ export type Migration<Context = void, Meta = void> = {
 	readonly uid: string;
 
 	/**
-	 * Method will be called to apply migration
+	 * Method to apply migration
 	 */
 	apply(context: Context): Promise<void>;
+
+	/**
+	 * Optional method to revert migration
+	 */
+	revert?(context: Context): Promise<void>;
 } & (void extends Meta
 	? {
 			/**

@@ -10,4 +10,8 @@ export class InMemoryStorage<M = void> implements MigrationStorage<M> {
 	async log(uid: string): Promise<void> {
 		this.state.add(uid);
 	}
+
+	async unlog(uid: string): Promise<void> {
+		this.state.delete(uid);
+	}
 }
