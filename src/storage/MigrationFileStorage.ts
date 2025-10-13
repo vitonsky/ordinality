@@ -94,4 +94,22 @@ export class MigrationFileStorage<M = void> implements MigrationStorage<M> {
 		const verifiedState = this.getStorageScheme().parse(newState) as State<M>;
 		await writeFile(this.filename, this.getCodec().encode(verifiedState));
 	}
+
+	async unlog(uid: string): Promise<void> {
+		const state = await this.fetchState();
+
+		// Update migrations list
+		const filteredMigrations = state.migrations.filter(
+			(migration) => migration.name === uid,
+		);
+		if (state.migrations.length === filteredMigrations.length)
+			throw new Error(`Migration with name ${uid} is not found`);
+
+		state.migrations = filteredMigrations;
+
+		await mkdir(path.dirname(this.filename), { recursive: true });
+
+		const verifiedState = this.getStorageScheme().parse(state) as State<M>;
+		await writeFile(this.filename, this.getCodec().encode(verifiedState));
+	}
 }
