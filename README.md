@@ -32,7 +32,7 @@ const migrations = new MigrationRunner({
 		{
 			uid: 'add_notes_table',
 			// Context is passed to every migration as first argument
-			apply: async ({ db }) =>
+			apply: async ({ context: { db } }) =>
 				db.exec(`CREATE TABLE "notes" (
 					"id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 					"created_at" TIMESTAMP WITH TIME ZONE DEFAULT now(),
@@ -42,7 +42,7 @@ const migrations = new MigrationRunner({
 					"visible" BOOLEAN DEFAULT true
 				)`),
 			// Optionally, migration object may provide method to revert migration
-			revert: async ({ db }) => db.exec(`DROP TABLE "notes"`),
+			revert: async ({ context: { db } }) => db.exec(`DROP TABLE "notes"`),
 		},
 	],
 });
@@ -145,7 +145,12 @@ Migration is just an object that define an unique migration name, migration meta
 The formal definition is
 
 ```ts
-type MigrationMeta<T, Context> = ((context: Context) => Promise<T>) | T;
+export type MigrationMeta<T, Context> = ((context: Context) => Promise<T>) | T;
+
+export type MigrationContext<Context, Meta> = {
+	context: Context;
+	meta: Meta;
+};
 
 export type Migration<Context = void, Meta = void> = {
 	readonly uid: string;
@@ -153,12 +158,12 @@ export type Migration<Context = void, Meta = void> = {
 	/**
 	 * Method to apply migration
 	 */
-	apply(context: Context): Promise<void>;
+	apply(context: MigrationContext<Context, Meta>): Promise<void>;
 
 	/**
 	 * Optional method to revert migration
 	 */
-	revert?(context: Context): Promise<void>;
+	revert?(context: MigrationContext<Context, Meta>): Promise<void>;
 } & (void extends Meta
 	? {
 			/**
@@ -183,7 +188,7 @@ const migrations = new MigrationRunner({
 		{
 			uid: 'add_notes_table',
 			// Context is passed to every migration as first argument
-			apply: async ({ db }) =>
+			apply: async ({ context: { db } }) =>
 				db.exec(`CREATE TABLE "notes" (
 					"id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 					"created_at" TIMESTAMP WITH TIME ZONE DEFAULT now(),
@@ -193,7 +198,7 @@ const migrations = new MigrationRunner({
 					"visible" BOOLEAN DEFAULT true
 				)`),
 			// Optionally, migration object may provide method to revert migration
-			revert: async ({ db }) => db.exec(`DROP TABLE "notes"`),
+			revert: async ({ context: { db } }) => db.exec(`DROP TABLE "notes"`),
 		},
 	],
 });
@@ -221,7 +226,7 @@ export async function convertSQLToMigrationObject(
 
 	return {
 		uid,
-		apply: async ({ db }) =>
+		apply: async ({ context: { db } }) =>
 			db.transaction(async (tx) => {
 				await tx.exec(sql);
 			}),
@@ -379,18 +384,18 @@ import { PGlite } from '@electric-sql/pglite';
 /**
  * Custom storage that persists migration names in Postgres DB
  */
-export class PostgresMigrationsStorage<T> implements MigrationStorage<T> {
+export class PostgresMigrationsStorage<C extends MigrationContext<any, any>> implements MigrationStorage<C> {
 	constructor(
 		private readonly db: PGlite,
 		private readonly tableName = 'schema_migrations',
 	) { }
 
-	async log(uid: string, _meta: T): Promise<void> {
+	async log(uid: string, _context: C): Promise<void> {
 		await this.ensureTable();
 		await this.db.query(`INSERT INTO ${this.tableName} (name) VALUES ($1)`, [uid]);
 	}
 
-	async unlog(uid: string, _meta: T): Promise<void> {
+	async unlog(uid: string, _context: C): Promise<void> {
 		await this.ensureTable();
 		await this.db.query(`DELETE FROM ${this.tableName} WHERE name=$1`, [uid]);
 	}
