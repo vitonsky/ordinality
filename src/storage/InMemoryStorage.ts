@@ -1,6 +1,9 @@
+import { MigrationContext } from '../Migration';
 import type { MigrationStorage } from './MigrationStorage';
 
-export class InMemoryStorage<M = void> implements MigrationStorage<M> {
+export class InMemoryStorage<C extends MigrationContext<any, any>>
+	implements MigrationStorage<C>
+{
 	constructor(private readonly state: Set<string> = new Set()) {}
 
 	async list(): Promise<string[]> {

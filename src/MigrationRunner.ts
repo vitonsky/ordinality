@@ -1,4 +1,4 @@
-import type { Migration } from './Migration';
+import type { Migration, MigrationContext } from './Migration';
 import type { MigrationStorage } from './storage/MigrationStorage';
 
 export type Range<K extends string> =
@@ -94,7 +94,7 @@ export class MigrationRunner<
 	constructor(
 		protected readonly config: {
 			migrations: Migration<Context, Meta>[];
-			storage: MigrationStorage<Meta>;
+			storage: MigrationStorage<MigrationContext<Context, Meta>>;
 		} & (void extends Context
 			? {
 					context?: Context;
@@ -183,14 +183,18 @@ export class MigrationRunner<
 			const migration = migrations[i];
 
 			const rawMeta = migration.meta;
-			const meta: Meta =
-				typeof rawMeta === 'function'
-					? await rawMeta(context as Context)
-					: rawMeta;
+
+			const migrationContext = {
+				context: context as Context,
+				meta:
+					typeof rawMeta === 'function'
+						? await rawMeta(context as Context)
+						: rawMeta,
+			};
 
 			// Apply migration
-			await migration.apply(context as Context);
-			await storage.log(migration.uid, meta);
+			await migration.apply(migrationContext);
+			await storage.log(migration.uid, migrationContext);
 			appliedMigrations.push(migration.uid);
 		}
 
@@ -223,10 +227,13 @@ export class MigrationRunner<
 			const migration = migrations[i];
 
 			const rawMeta = migration.meta;
-			const meta: Meta =
-				typeof rawMeta === 'function'
-					? await rawMeta(context as Context)
-					: rawMeta;
+			const migrationContext = {
+				context: context as Context,
+				meta:
+					typeof rawMeta === 'function'
+						? await rawMeta(context as Context)
+						: rawMeta,
+			};
 
 			if (!migration.revert)
 				throw new Error(
@@ -234,8 +241,8 @@ export class MigrationRunner<
 				);
 
 			// Apply migration
-			await migration.revert(context as Context);
-			await storage.unlog(migration.uid, meta);
+			await migration.revert(migrationContext);
+			await storage.unlog(migration.uid, migrationContext);
 			revertedMigrations.push(migration.uid);
 		}
 

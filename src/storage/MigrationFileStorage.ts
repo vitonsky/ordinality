@@ -2,6 +2,7 @@ import { existsSync } from 'fs';
 import path from 'path';
 import { z } from 'zod';
 
+import { MigrationContext } from '../Migration';
 import { mkdir, readFile, writeFile } from 'fs/promises';
 import type { MigrationStorage } from './MigrationStorage';
 
@@ -18,25 +19,27 @@ export type State<M = void> = {
 };
 
 // TODO: lock file and wait unlock to ensure consistent state when multiple instances in run
-export class MigrationFileStorage<M = void> implements MigrationStorage<M> {
+export class MigrationFileStorage<C extends MigrationContext<any, any>>
+	implements MigrationStorage<C>
+{
 	constructor(
 		private readonly filename: string,
 		private readonly options: {
 			/**
 			 * Scheme validator for a migration meta
 			 */
-			metaScheme?: M extends z.TypeOf<infer X> ? X : never;
+			metaScheme?: C['meta'] extends z.TypeOf<infer X> ? X : never;
 
 			/**
 			 * Custom logic to encode/decode data
 			 *
 			 * By default data will be encoded as JSON string
 			 */
-			codec?: Codec<State<M>>;
+			codec?: Codec<State<C['meta']>>;
 		} = {},
 	) {}
 
-	protected getCodec(): Codec<State<M>> {
+	protected getCodec(): Codec<State<C['meta']>> {
 		return (
 			this.options.codec ?? {
 				encode(data) {
@@ -52,7 +55,7 @@ export class MigrationFileStorage<M = void> implements MigrationStorage<M> {
 	protected getMigrationScheme() {
 		return z.object({
 			name: z.string(),
-			meta: this.options.metaScheme ?? z.void().optional(),
+			meta: this.options.metaScheme ?? z.void().nullish().optional(),
 		});
 	}
 
@@ -68,7 +71,7 @@ export class MigrationFileStorage<M = void> implements MigrationStorage<M> {
 		const fileBuffer = await readFile(this.filename);
 		const jsonState = this.getCodec().decode(fileBuffer);
 
-		return this.getStorageScheme().parse(jsonState) as State<M>;
+		return this.getStorageScheme().parse(jsonState) as State<C['meta']>;
 	}
 
 	async list(): Promise<string[]> {
@@ -77,7 +80,7 @@ export class MigrationFileStorage<M = void> implements MigrationStorage<M> {
 		return state.migrations.map((migration) => migration.name);
 	}
 
-	async log(uid: string, meta: M): Promise<void> {
+	async log(uid: string, context: C): Promise<void> {
 		const newState = await this.fetchState();
 
 		// Ensure unique name
@@ -87,11 +90,11 @@ export class MigrationFileStorage<M = void> implements MigrationStorage<M> {
 		}
 
 		// Add and validate
-		newState.migrations.push({ name: uid, meta });
+		newState.migrations.push({ name: uid, meta: context.meta });
 
 		await mkdir(path.dirname(this.filename), { recursive: true });
 
-		const verifiedState = this.getStorageScheme().parse(newState) as State<M>;
+		const verifiedState = this.getStorageScheme().parse(newState) as State<C['meta']>;
 		await writeFile(this.filename, this.getCodec().encode(verifiedState));
 	}
 
@@ -109,7 +112,7 @@ export class MigrationFileStorage<M = void> implements MigrationStorage<M> {
 
 		await mkdir(path.dirname(this.filename), { recursive: true });
 
-		const verifiedState = this.getStorageScheme().parse(state) as State<M>;
+		const verifiedState = this.getStorageScheme().parse(state) as State<C['meta']>;
 		await writeFile(this.filename, this.getCodec().encode(verifiedState));
 	}
 }

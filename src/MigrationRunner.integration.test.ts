@@ -54,7 +54,9 @@ describe.sequential('basic migration use case', () => {
 		await expect(runner.up()).resolves.toEqual(['1', '2', '3']);
 
 		// Every migration has been called with context
-		migrations.every(({ apply }) => expect(apply.mock.calls).toEqual([[context]]));
+		migrations.every(({ apply }) =>
+			expect(apply.mock.calls).toEqual([[{ context, meta: undefined }]]),
+		);
 
 		// Data changed correctly
 		expect(targetState).toBe(3);
@@ -143,7 +145,9 @@ describe.sequential('basic migration use case', () => {
 		await expect(runner.up()).resolves.toEqual(['4', '5']);
 
 		// Every new migration has been called with context
-		newMigrations.every(({ apply }) => expect(apply.mock.calls).toEqual([[context]]));
+		newMigrations.every(({ apply }) =>
+			expect(apply.mock.calls).toEqual([[{ context, meta: undefined }]]),
+		);
 
 		// Previous migrations has not been called
 		previousMigrationsSlice.every(({ apply }) => expect(apply).not.toBeCalled());
@@ -176,7 +180,9 @@ describe.sequential('basic migration use case', () => {
 
 		await expect(runner.up()).rejects.toThrowError();
 
-		expect(newMigrations[0].apply.mock.calls).toEqual([[context]]);
+		expect(newMigrations[0].apply.mock.calls).toEqual([
+			[{ context, meta: undefined }],
+		]);
 		expect(newMigrations[1].apply).not.toBeCalled();
 
 		// Previous migrations has not been called

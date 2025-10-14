@@ -3,7 +3,7 @@
 import { verbose } from 'sqlite3';
 import { PGlite } from '@electric-sql/pglite';
 
-import type { Migration } from '../Migration';
+import type { Migration, MigrationContext } from '../Migration';
 import { MigrationRunner } from '../MigrationRunner';
 import { DBQuery, getSQLCompilerPreset, SQLStorage } from './SQLStorage';
 
@@ -51,7 +51,7 @@ const storageConstructors = [
 ] satisfies {
 	name: string;
 	create(): {
-		storage: SQLStorage;
+		storage: SQLStorage<MigrationContext<any, any>>;
 		query: DBQuery;
 	};
 }[];
@@ -59,15 +59,20 @@ const storageConstructors = [
 storageConstructors.forEach((storageInfo) => {
 	const { name, create } = storageInfo;
 	describe(`SQL storage backed by ${name}`, () => {
+		const context: MigrationContext<any, any> = {
+			context: null,
+			meta: null,
+		};
+
 		test('Storage persistency', async () => {
 			const { storage } = create();
 			await expect(storage.list()).resolves.toEqual([]);
-			await storage.log('foo');
+			await storage.log('foo', context);
 			await expect(storage.list()).resolves.toEqual(['foo']);
 
-			await expect(storage.log('foo')).rejects.toThrowError();
-			await expect(storage.log('bar')).resolves.not.toThrowError();
-			await expect(storage.log('bar')).rejects.toThrowError();
+			await expect(storage.log('foo', context)).rejects.toThrowError();
+			await expect(storage.log('bar', context)).resolves.not.toThrowError();
+			await expect(storage.log('bar', context)).rejects.toThrowError();
 			await expect(storage.list()).resolves.toEqual(['foo', 'bar']);
 		});
 
@@ -78,7 +83,7 @@ storageConstructors.forEach((storageInfo) => {
 			const migrations: Migration<Context>[] = [
 				{
 					uid: 'create-posts-table',
-					async apply(context) {
+					async apply({ context }) {
 						await context.query(
 							'CREATE TABLE posts (id INTEGER PRIMARY KEY, text TEXT NOT NULL)',
 							[],
@@ -87,7 +92,7 @@ storageConstructors.forEach((storageInfo) => {
 				},
 				{
 					uid: 'add-title-to-posts',
-					async apply(context) {
+					async apply({ context }) {
 						await context.query(
 							'ALTER TABLE posts ADD COLUMN title TEXT NOT NULL',
 							[],
@@ -111,7 +116,7 @@ storageConstructors.forEach((storageInfo) => {
 
 			migrations.push({
 				uid: 'add created_at field',
-				async apply(context) {
+				async apply({ context }) {
 					await context.query(
 						'ALTER TABLE posts ADD COLUMN created_at INTEGER DEFAULT 0',
 						[],

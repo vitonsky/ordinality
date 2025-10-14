@@ -1,6 +1,7 @@
 import { SQLCompiler } from 'nano-queries/compilers/SQLCompiler';
 import { ConfigurableSQLBuilder } from 'nano-queries/sql/ConfigurableSQLBuilder';
 
+import { MigrationContext } from '../Migration';
 import type { MigrationStorage } from './MigrationStorage';
 
 export type BasicSQLTypes = string | number;
@@ -33,7 +34,9 @@ export const getSQLCompilerPreset = (
 /**
  * Custom storage that persists migration names
  */
-export class SQLStorage<M = void> implements MigrationStorage<M> {
+export class SQLStorage<C extends MigrationContext<any, any>>
+	implements MigrationStorage<C>
+{
 	protected readonly config;
 	protected readonly qb;
 	constructor(config: {
@@ -48,7 +51,7 @@ export class SQLStorage<M = void> implements MigrationStorage<M> {
 		};
 	}
 
-	async log(uid: string, _meta: M): Promise<void> {
+	async log(uid: string, _context: C): Promise<void> {
 		await this.ensureTable();
 
 		const idQuery = this.qb
@@ -60,7 +63,7 @@ export class SQLStorage<M = void> implements MigrationStorage<M> {
 		await this.config.query(insertQuery.sql, insertQuery.bindings);
 	}
 
-	async unlog(uid: string, _meta: M): Promise<void> {
+	async unlog(uid: string, _context: C): Promise<void> {
 		await this.ensureTable();
 
 		const insertQuery = this.qb.toSQL(

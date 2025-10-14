@@ -5,19 +5,34 @@ exports[`Migrations with meta > Storage receive uid and meta 1`] = `
   [
     "1",
     {
-      "hash": "1",
+      "context": {
+        "secret": "secret",
+      },
+      "meta": {
+        "hash": "1",
+      },
     },
   ],
   [
     "2",
     {
-      "hash": "2 and context value: secret",
+      "context": {
+        "secret": "secret",
+      },
+      "meta": {
+        "hash": "2 and context value: secret",
+      },
     },
   ],
   [
     "3",
     {
-      "hash": "3 and context value: secret",
+      "context": {
+        "secret": "secret",
+      },
+      "meta": {
+        "hash": "3 and context value: secret",
+      },
     },
   ],
 ]
