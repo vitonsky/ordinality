@@ -19,38 +19,38 @@ import { PGlite } from '@electric-sql/pglite';
 
 const db = new PGlite();
 const migrations = new MigrationRunner({
-	context: { db },
-	// You may use one of included storage implementation, or implement custom storage
-	// Here we use SQLStorage to persist migration data in any SQL-like storage
-	storage: new SQLStorage({
-		// You may use SQL query compiler for you DB
-		// by preset name like sqlite,mysql,postgres
-		compiler: getSQLCompilerPreset('postgres'),
+  context: { db },
+  // You may use one of included storage implementation, or implement custom storage
+  // Here we use SQLStorage to persist migration data in any SQL-like storage
+  storage: new SQLStorage({
+    // You may use SQL query compiler for you DB
+    // by preset name like sqlite,mysql,postgres
+    compiler: getSQLCompilerPreset('postgres'),
 
-		// SQLStorage require a `query` method implementation, to run queries on DB.
-		// This method receive query and bindings, and return an array of rows.
-		async query(query, bindings) {
-			const { rows } = await db.query(query, bindings);
-			return rows as Record<string, any>[];
-		}
-	}),
-	migrations: [
-		{
-			uid: 'add_notes_table',
-			// Context is passed to every migration as first argument
-			apply: async ({ context: { db } }) =>
-				db.exec(`CREATE TABLE "notes" (
-					"id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-					"created_at" TIMESTAMP WITH TIME ZONE DEFAULT now(),
-					"updated_at" TIMESTAMP WITH TIME ZONE DEFAULT now(),
-					"title" TEXT NOT NULL,
-					"text" TEXT NOT NULL,
-					"visible" BOOLEAN DEFAULT true
-				)`),
-			// Optionally, migration object may provide method to revert migration
-			revert: async ({ context: { db } }) => db.exec(`DROP TABLE "notes"`),
-		},
-	],
+    // SQLStorage require a `query` method implementation, to run queries on DB.
+    // This method receive query and bindings, and return an array of rows.
+    async query(query, bindings) {
+      const { rows } = await db.query(query, bindings);
+      return rows as Record<string, any>[];
+    }
+  }),
+  migrations: [
+    {
+      uid: 'add_notes_table',
+      // Context is passed to every migration as first argument
+      apply: async ({ context: { db } }) =>
+        db.exec(`CREATE TABLE "notes" (
+          "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          "created_at" TIMESTAMP WITH TIME ZONE DEFAULT now(),
+          "updated_at" TIMESTAMP WITH TIME ZONE DEFAULT now(),
+          "title" TEXT NOT NULL,
+          "text" TEXT NOT NULL,
+          "visible" BOOLEAN DEFAULT true
+        )`),
+      // Optionally, migration object may provide method to revert migration
+      revert: async ({ context: { db } }) => db.exec(`DROP TABLE "notes"`),
+    },
+  ],
 });
 
 // Checks migrations and run them if they are not already applied.
@@ -160,59 +160,59 @@ The formal definition is
 export type MigrationMeta<T, Context> = ((context: Context) => Promise<T>) | T;
 
 export type MigrationContext<Context, Meta> = {
-	context: Context;
-	meta: Meta;
+  context: Context;
+  meta: Meta;
 };
 
 export type Migration<Context = void, Meta = void> = {
-	readonly uid: string;
+  readonly uid: string;
 
-	/**
-	 * Method to apply migration
-	 */
-	apply(context: MigrationContext<Context, Meta>): Promise<void>;
+  /**
+   * Method to apply migration
+   */
+  apply(context: MigrationContext<Context, Meta>): Promise<void>;
 
-	/**
-	 * Optional method to revert migration
-	 */
-	revert?(context: MigrationContext<Context, Meta>): Promise<void>;
+  /**
+   * Optional method to revert migration
+   */
+  revert?(context: MigrationContext<Context, Meta>): Promise<void>;
 } & (void extends Meta
-	? {
-			/**
-			 * Migration meta
-			 */
-			meta?: undefined;
-		}
-	: {
-			/**
-			 * Migration meta
-			 */
-			meta: MigrationMeta<Meta, Context>;
-		});
+  ? {
+      /**
+       * Migration meta
+       */
+      meta?: undefined;
+    }
+  : {
+      /**
+       * Migration meta
+       */
+      meta: MigrationMeta<Meta, Context>;
+    });
 ```
 
 You may pass migrations manually as in examples before
 
 ```ts
 const migrations = new MigrationRunner({
-	/* Another options... */
-	migrations: [
-		{
-			uid: 'add_notes_table',
-			// Context is passed to every migration as first argument
-			apply: async ({ context: { db } }) =>
-				db.exec(`CREATE TABLE "notes" (
-					"id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-					"created_at" TIMESTAMP WITH TIME ZONE DEFAULT now(),
-					"updated_at" TIMESTAMP WITH TIME ZONE DEFAULT now(),
-					"title" TEXT NOT NULL,
-					"text" TEXT NOT NULL,
-					"visible" BOOLEAN DEFAULT true
-				)`),
-			// Optionally, migration object may provide method to revert migration
-			revert: async ({ context: { db } }) => db.exec(`DROP TABLE "notes"`),
-		},
-	],
+  /* Another options... */
+  migrations: [
+    {
+      uid: 'add_notes_table',
+      // Context is passed to every migration as first argument
+      apply: async ({ context: { db } }) =>
+        db.exec(`CREATE TABLE "notes" (
+          "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          "created_at" TIMESTAMP WITH TIME ZONE DEFAULT now(),
+          "updated_at" TIMESTAMP WITH TIME ZONE DEFAULT now(),
+          "title" TEXT NOT NULL,
+          "text" TEXT NOT NULL,
+          "visible" BOOLEAN DEFAULT true
+        )`),
+      // Optionally, migration object may provide method to revert migration
+      revert: async ({ context: { db } }) => db.exec(`DROP TABLE "notes"`),
+    },
+  ],
 });
 ```
 
@@ -222,7 +222,7 @@ or generate migrations with an idiomatic way for your project
 import { Migration } from 'ordinality';
 
 type DBMigration = Migration<{
-	db: PGLite;
+  db: PGLite;
 }>;
 
 /**
@@ -231,31 +231,31 @@ type DBMigration = Migration<{
  * Transaction is automatically commit on success and roll back on error
  */
 export async function convertSQLToMigrationObject(
-	uid: string,
-	module: Promise<typeof import('*.sql')>,
+  uid: string,
+  module: Promise<typeof import('*.sql')>,
 ): Promise<DBMigration> {
-	const { default: sql } = await module;
+  const { default: sql } = await module;
 
-	return {
-		uid,
-		apply: async ({ context: { db } }) =>
-			db.transaction(async (tx) => {
-				await tx.exec(sql);
-			}),
-	};
+  return {
+    uid,
+    apply: async ({ context: { db } }) =>
+      db.transaction(async (tx) => {
+        await tx.exec(sql);
+      }),
+  };
 }
 
 export const getMigrationsList = async (): Promise<DBMigration[]> =>
-	Promise.all([
-		// This code implies your bundler configured to return content of `.sql` files as a string
-		convertSQLToMigrationObject('init_db', import('./sql/init_db.sql')),
-		convertSQLToMigrationObject('add_notes_table', import('./sql/add_notes_table.sql')),
-		convertSQLToMigrationObject('add_workspaces_table', import('./sql/add_workspaces_table.sql')),
-	]);
+  Promise.all([
+    // This code implies your bundler configured to return content of `.sql` files as a string
+    convertSQLToMigrationObject('init_db', import('./sql/init_db.sql')),
+    convertSQLToMigrationObject('add_notes_table', import('./sql/add_notes_table.sql')),
+    convertSQLToMigrationObject('add_workspaces_table', import('./sql/add_workspaces_table.sql')),
+  ]);
 
 const migrations = new MigrationRunner({
-	/* Another options... */
-	migrations: await getMigrationsList(),
+  /* Another options... */
+  migrations: await getMigrationsList(),
 });
 ```
 
@@ -278,8 +278,8 @@ Keep migrations data in RAM. Purposed to use in temporary environments and tests
 import { MigrationRunner, InMemoryStorage } from 'ordinality';
 
 const migrations = new MigrationRunner({
-	/* Another options... */
-	storage: new InMemoryStorage(),
+  /* Another options... */
+  storage: new InMemoryStorage(),
 });
 ```
 
@@ -292,8 +292,8 @@ Keep data in files, using Node `fs` API.
 import { MigrationRunner, MigrationFileStorage } from 'ordinality';
 
 const migrations = new MigrationRunner({
-	/* Another options... */
-	storage: new MigrationFileStorage('./migrations.json'),
+  /* Another options... */
+  storage: new MigrationFileStorage('./migrations.json'),
 });
 ```
 
@@ -303,17 +303,17 @@ By default state is encoded as JSON string. In case you want to use another form
 import { MigrationRunner, MigrationFileStorage } from 'ordinality';
 
 const migrations = new MigrationRunner({
-	/* Another options... */
-	storage: new MigrationFileStorage('./migrations.data', {
-		codec: {
-			encode(data) {
-				return encryptObjectToBuffer(data);
-			},
-			decode(buffer) {
-				return decryptBufferToObject(buffer);
-			},
-		},
-	}),
+  /* Another options... */
+  storage: new MigrationFileStorage('./migrations.data', {
+    codec: {
+      encode(data) {
+        return encryptObjectToBuffer(data);
+      },
+      decode(buffer) {
+        return decryptBufferToObject(buffer);
+      },
+    },
+  }),
 });
 ```
 
@@ -335,19 +335,19 @@ import { PGlite } from '@electric-sql/pglite';
 const db = new PGlite();
 
 const migrations = new MigrationRunner({
-	/* Another options... */
-	storage: new SQLStorage({
-		// You may use SQL query compiler for you DB
-		// by preset name like sqlite,mysql,postgres
-		compiler: getSQLCompilerPreset('postgres'),
+  /* Another options... */
+  storage: new SQLStorage({
+    // You may use SQL query compiler for you DB
+    // by preset name like sqlite,mysql,postgres
+    compiler: getSQLCompilerPreset('postgres'),
 
-		// SQLStorage require a `query` method implementation, to run queries on DB.
-		// This method receive query and bindings, and return an array of rows.
-		async query(query, bindings) {
-			const { rows } = await db.query(query, bindings);
-			return rows as Record<string, any>[];
-		}
-	}),
+    // SQLStorage require a `query` method implementation, to run queries on DB.
+    // This method receive query and bindings, and return an array of rows.
+    async query(query, bindings) {
+      const { rows } = await db.query(query, bindings);
+      return rows as Record<string, any>[];
+    }
+  }),
 });
 ```
 
@@ -364,22 +364,22 @@ import { PGlite } from '@electric-sql/pglite';
 const db = new PGlite();
 
 const migrations = new MigrationRunner({
-	/* Another options... */
-	storage: new SQLStorage({
-		compiler: new SQLCompiler<BasicSQLTypes>({
-			getPlaceholder(valueIndex) {
-				// Placeholder compiler for Postgres queries
-				return '$' + (valueIndex + 1);
-			},
-		}),
+  /* Another options... */
+  storage: new SQLStorage({
+    compiler: new SQLCompiler<BasicSQLTypes>({
+      getPlaceholder(valueIndex) {
+        // Placeholder compiler for Postgres queries
+        return '$' + (valueIndex + 1);
+      },
+    }),
 
-		// SQLStorage require a `query` method implementation, to run queries on DB.
-		// This method receive query and bindings, and return an array of rows.
-		async query(query, bindings) {
-			const { rows } = await db.query(query, bindings);
-			return rows as Record<string, any>[];
-		}
-	}),
+    // SQLStorage require a `query` method implementation, to run queries on DB.
+    // This method receive query and bindings, and return an array of rows.
+    async query(query, bindings) {
+      const { rows } = await db.query(query, bindings);
+      return rows as Record<string, any>[];
+    }
+  }),
 });
 ```
 
@@ -397,40 +397,40 @@ import { PGlite } from '@electric-sql/pglite';
  * Custom storage that persists migration names in Postgres DB
  */
 export class PostgresMigrationsStorage<C extends MigrationContext<any, any>> implements MigrationStorage<C> {
-	constructor(
-		private readonly db: PGlite,
-		private readonly tableName = 'schema_migrations',
-	) { }
+  constructor(
+    private readonly db: PGlite,
+    private readonly tableName = 'schema_migrations',
+  ) { }
 
-	async log(uid: string, _context: C): Promise<void> {
-		await this.ensureTable();
-		await this.db.query(`INSERT INTO ${this.tableName} (name) VALUES ($1)`, [uid]);
-	}
+  async log(uid: string, _context: C): Promise<void> {
+    await this.ensureTable();
+    await this.db.query(`INSERT INTO ${this.tableName} (name) VALUES ($1)`, [uid]);
+  }
 
-	async unlog(uid: string, _context: C): Promise<void> {
-		await this.ensureTable();
-		await this.db.query(`DELETE FROM ${this.tableName} WHERE name=$1`, [uid]);
-	}
+  async unlog(uid: string, _context: C): Promise<void> {
+    await this.ensureTable();
+    await this.db.query(`DELETE FROM ${this.tableName} WHERE name=$1`, [uid]);
+  }
 
-	async list(): Promise<string[]> {
-		await this.ensureTable();
+  async list(): Promise<string[]> {
+    await this.ensureTable();
 
-		const { rows } = await this.db.query(
-			`SELECT name FROM ${this.tableName} ORDER BY executed_at ASC`,
-		);
-		return rows.map((row: any) => row.name);
-	}
+    const { rows } = await this.db.query(
+      `SELECT name FROM ${this.tableName} ORDER BY executed_at ASC`,
+    );
+    return rows.map((row: any) => row.name);
+  }
 
-	// ensure migrations table exists
-	async ensureTable() {
-		await this.db.exec(
-			`CREATE TABLE IF NOT EXISTS ${this.tableName} (
-				id SERIAL PRIMARY KEY,
-				name TEXT NOT NULL UNIQUE,
-				executed_at TIMESTAMP WITH TIME ZONE DEFAULT now()
-			);`,
-		);
-	}
+  // ensure migrations table exists
+  async ensureTable() {
+    await this.db.exec(
+      `CREATE TABLE IF NOT EXISTS ${this.tableName} (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL UNIQUE,
+        executed_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+      );`,
+    );
+  }
 }
 ```
 

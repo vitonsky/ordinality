@@ -3,7 +3,7 @@
 	"version": "1.0.0",
 	"type": "module",
 	"description": "Universal migrations tools",
-	"keywords": ["migrations"],
+	"keywords": ["migrate", "migration", "migrations", "browser", "database"],
 	"license": "MIT",
 	"author": "Robert Vitonsky <https://github.com/vitonsky>",
 	"homepage": "https://github.com/vitonsky/ordinality",
