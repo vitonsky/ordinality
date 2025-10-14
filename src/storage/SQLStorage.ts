@@ -3,7 +3,7 @@ import { ConfigurableSQLBuilder } from 'nano-queries/sql/ConfigurableSQLBuilder'
 
 import type { MigrationStorage } from './MigrationStorage';
 
-type BasicSQLTypes = string | number;
+export type BasicSQLTypes = string | number;
 
 export type DBQuery = (
 	query: string,
