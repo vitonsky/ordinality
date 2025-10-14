@@ -1,7 +1,13 @@
 [![](https://img.shields.io/npm/v/ordinality.svg)](https://www.npmjs.com/package/ordinality) ![](https://github.com/vitonsky/ordinality/actions/workflows/codeql-analysis.yml/badge.svg)
 
-<!-- TODO: add preview section -->
-<!-- TODO: add highlights section -->
+Ordinality is a framework-agnostic migration tool for any JavaScript environment. It provides a clean API for running and rolling back tasks.
+
+# Features
+
+- Database agnostic
+- Work with any JavaScript environment - Node, Browser, WebWorker, etc.
+- Supports multiple storages for migration data
+- Programmatic API for migrations
 
 # Minimal example
 
@@ -54,6 +60,12 @@ await migrations.up();
 ```
 
 # Usage
+
+Ordinality is built to run on any environment, including Node, Browser, WebWorker, etc.
+
+Examples in docs use imports from `ordinality`, but in production code you should use specific imports like `ordinality/MigrationRunner`, `ordinality/storage/SQLStorage`, etc. This way ensure you will import only code you really use on project, and it also decrease bundle size.
+
+In case you will use imports from `ordinality`, you may have errors like `fs module not found` if your target is browser, and your bundler is not configured to aggressive tree shaking.
 
 ## Installation
 
@@ -424,6 +436,6 @@ export class PostgresMigrationsStorage<C extends MigrationContext<any, any>> imp
 
 # Development
 
-`ordinality` is an truth open source project, so you are welcome on [project github repository](https://github.com/vitonsky/ordinality/) to contribute a code, [make issues](https://github.com/vitonsky/ordinality/issues/new/choose) with feature requests and bug reports.
+Join to development. Any contributions are welcome, check [github repo](https://github.com/vitonsky/ordinality/) to file issues  or send pull requests.
 
-You may contribute to a project if you tell about `ordinality` to your friends.
+Do you like it? Spread the word about project.
