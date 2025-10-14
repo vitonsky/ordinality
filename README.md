@@ -5,13 +5,13 @@ Ordinality is a framework-agnostic migration tool for any JavaScript environment
 # Features
 
 - Database agnostic
-- Work with any JavaScript environment - Node, Browser, WebWorker, etc.
+- Works with any JavaScript environment - Node, Browser, WebWorker, etc.
 - Supports multiple storages for migration data
 - Programmatic API for migrations
 
 # Minimal example
 
-The following minimal example uses [PGlite database](https://pglite.dev/) and persistent the migration data in the database itself.
+The following minimal example uses [PGlite database](https://pglite.dev/) and persists the migration data in the database itself.
 
 ```ts
 import { MigrationRunner, getSQLCompilerPreset, SQLStorage } from 'ordinality';
@@ -20,15 +20,15 @@ import { PGlite } from '@electric-sql/pglite';
 const db = new PGlite();
 const migrations = new MigrationRunner({
   context: { db },
-  // You may use one of included storage implementation, or implement custom storage
+  // You may use one of the included storage implementations, or implement custom storage
   // Here we use SQLStorage to persist migration data in any SQL-like storage
   storage: new SQLStorage({
-    // You may use SQL query compiler for you DB
-    // by preset name like sqlite,mysql,postgres
+    // You may use SQL query compiler for your DB
+    // by preset name like sqlite, mysql, postgres
     compiler: getSQLCompilerPreset('postgres'),
 
-    // SQLStorage require a `query` method implementation, to run queries on DB.
-    // This method receive query and bindings, and return an array of rows.
+    // SQLStorage requires a `query` method implementation, to run queries on DB.
+    // This method receives query and bindings, and returns an array of rows.
     async query(query, bindings) {
       const { rows } = await db.query(query, bindings);
       return rows as Record<string, any>[];
@@ -37,7 +37,7 @@ const migrations = new MigrationRunner({
   migrations: [
     {
       uid: 'add_notes_table',
-      // Context is passed to every migration as first argument
+      // Context is passed to every migration as the first argument
       apply: async ({ context: { db } }) =>
         db.exec(`CREATE TABLE "notes" (
           "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -47,13 +47,13 @@ const migrations = new MigrationRunner({
           "text" TEXT NOT NULL,
           "visible" BOOLEAN DEFAULT true
         )`),
-      // Optionally, migration object may provide method to revert migration
+      // Optionally, migration object may provide a method to revert migration
       revert: async ({ context: { db } }) => db.exec(`DROP TABLE "notes"`),
     },
   ],
 });
 
-// Checks migrations and run them if they are not already applied.
+// Checks migrations and runs them if they are not already applied.
 // To keep track of the executed migrations, a table called `schema_migrations`
 // will be automatically created (if it doesn't exist already) and parsed.
 await migrations.up();
@@ -61,15 +61,15 @@ await migrations.up();
 
 # Usage
 
-Ordinality is built to run on any environment, including Node, Browser, WebWorker, etc.
+Ordinality is built to run in any environment, including Node, Browser, WebWorker, etc.
 
-Examples in docs use imports from `ordinality`, but in production code you should use specific imports like `ordinality/MigrationRunner`, `ordinality/storage/SQLStorage`, etc. This way ensure you will import only code you really use on project, and it also decrease bundle size.
+Examples in docs use imports from `ordinality`, but in production code you should use specific imports like `ordinality/MigrationRunner`, `ordinality/storage/SQLStorage`, etc. This way ensures you will import only code you really use in the project, and it also decreases bundle size.
 
-In case you will use imports from `ordinality`, you may have errors like `fs module not found` if your target is browser, and your bundler is not configured to aggressive tree shaking.
+In case you use imports from `ordinality`, you may encounter errors like `fs module not found` if your target is the browser, and your bundler is not configured for aggressive tree shaking.
 
 ## Installation
 
-Install package via `npm install ordinality`
+Install the package via `npm install ordinality`
 
 ## Migration runner
 
@@ -85,7 +85,7 @@ You can get a list of pending (i.e. not yet executed) migrations with the `pendi
 
 ```ts
 const migrationNames = await migrations.pending()
-// returns an array of all pending migrations.
+// returns an array of all pending migrations
 ```
 
 ### Getting all executed migrations
@@ -112,14 +112,14 @@ It is also possible to pass the name of a migration in order to just run the mig
 await migrations.up({to: '20141101203500-task'})
 ```
 
-To limit the number of migrations that are run, `step` parameter can be used:
+To limit the number of migrations that are run, the `step` parameter can be used:
 
 ```ts
 // This will run the next two migrations
 await migrations.up({step: 2})
 ```
 
-Note that **migrations order is very important**. In case any mismatch will be detected in order of applied migrations and provided migrations or its ids - all methods will throw an error and do not any actions, to prevent corruption of your data.
+Note that **migrations order is very important**. In case any mismatch is detected in the order of applied migrations and provided migrations or their ids - all methods will throw an error and do not take any actions, to prevent corruption of your data.
 
 ### Reverting executed migration
 
@@ -127,10 +127,10 @@ The `down` method can be used to revert the last executed migration.
 
 ```ts
 const migration = await migrations.down()
-// reverts the last migration and returns it.
+// reverts the last migration and returns it
 ```
 
-To revert more than one migration, you can use `step` parameter:
+To revert more than one migration, you can use the `step` parameter:
 
 ```ts
 // This will revert the last two migrations
@@ -141,7 +141,7 @@ It is possible to pass the name of a migration until which (exclusive) the migra
 
 ```ts
 const migrations = await migrations.down({to: '20141031080000-task'})
-// returns an array of all reverted migrations up to `20141031080000-task` but not including it.
+// returns an array of all reverted migrations up to `20141031080000-task` but not including it
 ```
 
 To revert all migrations, you can pass 0 as the `to` parameter:
@@ -152,7 +152,7 @@ await migrations.down({to: 0})
 
 ## Migrations
 
-Migration is just an object that define an unique migration name, migration meta information, and implements methods to apply and (optionally) to revert migration.
+Migration is just an object that defines a unique migration name, migration meta information, and implements methods to apply and (optionally) to revert migration.
 
 The formal definition is
 
@@ -199,7 +199,7 @@ const migrations = new MigrationRunner({
   migrations: [
     {
       uid: 'add_notes_table',
-      // Context is passed to every migration as first argument
+      // Context is passed to every migration as the first argument
       apply: async ({ context: { db } }) =>
         db.exec(`CREATE TABLE "notes" (
           "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -209,14 +209,14 @@ const migrations = new MigrationRunner({
           "text" TEXT NOT NULL,
           "visible" BOOLEAN DEFAULT true
         )`),
-      // Optionally, migration object may provide method to revert migration
+      // Optionally, migration object may provide a method to revert migration
       revert: async ({ context: { db } }) => db.exec(`DROP TABLE "notes"`),
     },
   ],
 });
 ```
 
-or generate migrations with an idiomatic way for your project
+or generate migrations in an idiomatic way for your project
 
 ```ts
 import { Migration } from 'ordinality';
@@ -226,9 +226,9 @@ type DBMigration = Migration<{
 }>;
 
 /**
- * Convert import from .sql file to a migration that run the SQL queries in transaction
+ * Convert import from .sql file to a migration that runs the SQL queries in transaction
  *
- * Transaction is automatically commit on success and roll back on error
+ * Transaction is automatically committed on success and rolled back on error
  */
 export async function convertSQLToMigrationObject(
   uid: string,
@@ -247,7 +247,7 @@ export async function convertSQLToMigrationObject(
 
 export const getMigrationsList = async (): Promise<DBMigration[]> =>
   Promise.all([
-    // This code implies your bundler configured to return content of `.sql` files as a string
+    // This code implies your bundler is configured to return the content of `.sql` files as a string
     convertSQLToMigrationObject('init_db', import('./sql/init_db.sql')),
     convertSQLToMigrationObject('add_notes_table', import('./sql/add_notes_table.sql')),
     convertSQLToMigrationObject('add_workspaces_table', import('./sql/add_workspaces_table.sql')),
@@ -259,20 +259,19 @@ const migrations = new MigrationRunner({
 });
 ```
 
-Logic of migrations fetching is highly depends on a project design, so your code may fetch SQL files, or import JavaScript files to build migrations array.
+The logic of migrations fetching highly depends on project design, so your code may fetch SQL files, or import JavaScript files to build the migrations array.
 
-This package does not provide any helpers to do it, to exclude dependencies that will not be used by most of package users.
+This package does not provide any helpers to do it, to exclude dependencies that will not be used by most package users.
 
 ## Storage
 
-The migrations storage purpose is to keep log of executed migrations and its order.
+The migrations storage purpose is to keep a log of executed migrations and their order.
 
-Some default storage implementations is included
+Some default storage implementations are included
 
 ### InMemoryStorage
 
-Keep migrations data in RAM. Purposed to use in temporary environments and tests.
-
+Keeps migrations data in RAM. Purposed to be used in temporary environments and tests.
 
 ```ts
 import { MigrationRunner, InMemoryStorage } from 'ordinality';
@@ -283,10 +282,9 @@ const migrations = new MigrationRunner({
 });
 ```
 
-
 ### MigrationFileStorage
 
-Keep data in files, using Node `fs` API.
+Keeps data in files, using Node `fs` API.
 
 ```ts
 import { MigrationRunner, MigrationFileStorage } from 'ordinality';
@@ -297,7 +295,7 @@ const migrations = new MigrationRunner({
 });
 ```
 
-By default state is encoded as JSON string. In case you want to use another format (Yaml, XML, etc), or want to transform/encrypt state file, you may pass `codec` parameter
+By default, state is encoded as a JSON string. In case you want to use another format (Yaml, XML, etc), or want to transform/encrypt the state file, you may pass the `codec` parameter
 
 ```ts
 import { MigrationRunner, MigrationFileStorage } from 'ordinality';
@@ -319,9 +317,9 @@ const migrations = new MigrationRunner({
 
 ### SQLStorage
 
-SQL storage keep migration data in any SQL-like storage.
+SQL storage keeps migration data in any SQL-like storage.
 
-This storage is require to pass
+This storage requires you to pass
 - `compiler`, to build SQL query and bindings
 - `query`, an adapter to query your database
 
@@ -337,12 +335,12 @@ const db = new PGlite();
 const migrations = new MigrationRunner({
   /* Another options... */
   storage: new SQLStorage({
-    // You may use SQL query compiler for you DB
-    // by preset name like sqlite,mysql,postgres
+    // You may use SQL query compiler for your DB
+    // by preset name like sqlite, mysql, postgres
     compiler: getSQLCompilerPreset('postgres'),
 
-    // SQLStorage require a `query` method implementation, to run queries on DB.
-    // This method receive query and bindings, and return an array of rows.
+    // SQLStorage requires a `query` method implementation, to run queries on DB.
+    // This method receives query and bindings, and returns an array of rows.
     async query(query, bindings) {
       const { rows } = await db.query(query, bindings);
       return rows as Record<string, any>[];
@@ -351,7 +349,7 @@ const migrations = new MigrationRunner({
 });
 ```
 
-You may use `getSQLCompilerPreset` util to build compiler from preset for your database.
+You may use `getSQLCompilerPreset` utility to build a compiler from a preset for your database.
 
 In case you want to tune an SQL compiler for non-standard syntax, you may create it yourself (see [docs for nano-queries](https://www.npmjs.com/package/nano-queries)).
 
@@ -373,8 +371,8 @@ const migrations = new MigrationRunner({
       },
     }),
 
-    // SQLStorage require a `query` method implementation, to run queries on DB.
-    // This method receive query and bindings, and return an array of rows.
+    // SQLStorage requires a `query` method implementation, to run queries on DB.
+    // This method receives query and bindings, and returns an array of rows.
     async query(query, bindings) {
       const { rows } = await db.query(query, bindings);
       return rows as Record<string, any>[];
@@ -436,6 +434,6 @@ export class PostgresMigrationsStorage<C extends MigrationContext<any, any>> imp
 
 # Development
 
-Join to development. Any contributions are welcome, check [github repo](https://github.com/vitonsky/ordinality/) to file issues  or send pull requests.
+Join the development. Any contributions are welcome, check [github repo](https://github.com/vitonsky/ordinality/) to file issues or send pull requests.
 
-Do you like it? Spread the word about project.
+Do you like it? Spread the word about the project.
