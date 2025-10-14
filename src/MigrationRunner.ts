@@ -215,11 +215,11 @@ export class MigrationRunner<
 					currentIndex,
 					direction: 'backward',
 				}) ?? currentIndex + 1)
-			: null;
+			: Math.max(0, currentIndex);
 
 		// Ensure current state is valid
 		const revertedMigrations: string[] = [];
-		for (let i = currentIndex; i >= (endIndex ?? 0); i--) {
+		for (let i = currentIndex; i >= endIndex; i--) {
 			const migration = migrations[i];
 
 			const rawMeta = migration.meta;

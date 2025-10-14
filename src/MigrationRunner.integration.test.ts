@@ -2,6 +2,18 @@ import type { Migration } from './Migration';
 import { MigrationRunner } from './MigrationRunner';
 import { InMemoryStorage } from './storage/InMemoryStorage';
 
+const genDummyMigrations = (count: number) =>
+	Array(count)
+		.fill(null)
+		.map(
+			(_, index) =>
+				({
+					uid: `change#${index + 1}`,
+					apply: vi.fn(),
+					revert: vi.fn(),
+				}) satisfies Migration,
+		);
+
 describe.sequential('basic migration use case', () => {
 	let targetState = 0;
 	const migrations = [
@@ -231,18 +243,6 @@ describe.sequential('Migrations with meta', () => {
 	});
 });
 
-const genDummyMigrations = (count: number) =>
-	Array(count)
-		.fill(null)
-		.map(
-			(_, index) =>
-				({
-					uid: `change#${index + 1}`,
-					apply: vi.fn(),
-					revert: vi.fn(),
-				}) satisfies Migration,
-		);
-
 describe('Partial migrations execution with ranges', () => {
 	test('Migrate by steps', async () => {
 		const storage = new InMemoryStorage();
@@ -328,6 +328,24 @@ describe('Partial migrations execution with ranges', () => {
 			'change#10',
 		]);
 		await expect(runner.up({ to: 10 })).resolves.toEqual([]);
+	});
+
+	test('Call method "down" with no options reverts 1 latest migration', async () => {
+		const storage = new InMemoryStorage();
+		const runner = new MigrationRunner({
+			storage,
+			migrations: genDummyMigrations(3),
+		});
+
+		await expect(runner.executed()).resolves.toEqual([]);
+		await expect(runner.up(), 'Execute migrations').resolves.toHaveLength(3);
+		await expect(runner.down()).resolves.toEqual(['change#3']);
+		await expect(runner.down()).resolves.toEqual(['change#2']);
+		await expect(runner.down()).resolves.toEqual(['change#1']);
+
+		await expect(runner.down()).resolves.toEqual([]);
+		await expect(runner.down()).resolves.toEqual([]);
+		await expect(runner.down()).resolves.toEqual([]);
 	});
 
 	test('Revert migrations by steps', async () => {
