@@ -105,8 +105,8 @@ export class MigrationRunner<
 	) {}
 
 	private async getState() {
-		const { migrations, storage } = this.config;
-		const executedMigrations = await storage.list();
+		const { migrations, storage, context } = this.config;
+		const executedMigrations = await storage.list({ context: context as Context });
 
 		if (executedMigrations.length > migrations.length)
 			throw new Error(

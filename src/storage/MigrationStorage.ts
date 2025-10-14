@@ -18,5 +18,5 @@ export interface MigrationStorage<C extends MigrationContext<any, any>> {
 	/**
 	 * Returns list with id of applied migrations
 	 */
-	list(): Promise<string[]>;
+	list(context: Pick<C, 'context'>): Promise<string[]>;
 }
