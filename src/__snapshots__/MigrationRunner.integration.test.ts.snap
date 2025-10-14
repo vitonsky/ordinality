@@ -1,0 +1,39 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Migrations with meta > Storage receive uid and meta 1`] = `
+[
+  [
+    "1",
+    {
+      "context": {
+        "secret": "secret",
+      },
+      "meta": {
+        "hash": "1",
+      },
+    },
+  ],
+  [
+    "2",
+    {
+      "context": {
+        "secret": "secret",
+      },
+      "meta": {
+        "hash": "2 and context value: secret",
+      },
+    },
+  ],
+  [
+    "3",
+    {
+      "context": {
+        "secret": "secret",
+      },
+      "meta": {
+        "hash": "3 and context value: secret",
+      },
+    },
+  ],
+]
+`;

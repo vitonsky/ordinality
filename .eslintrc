@@ -41,6 +41,8 @@
 				"lang": "en_US",
 				"skipWords": [
 					"ordinality",
+					"Zod",
+					"codec",
 					"uid",
 				],
 				// Check if word contains numbers
